@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 @main
 struct TorrentClientApp: App {
@@ -6,9 +7,10 @@ struct TorrentClientApp: App {
         WindowGroup {
             ContentView()
                 .tint(Color.accentColor)
+                .background(WindowConfigurator())
         }
         .defaultSize(width: 900, height: 600)
-        .windowToolbarStyle(.unified)
+        .windowToolbarStyle(.unified(showsTitle: false))
         .commands {
             CommandGroup(after: .appInfo) {
                 CheckForUpdatesView()
@@ -44,4 +46,21 @@ struct CheckForUpdatesView: View {
 
 extension Notification.Name {
     static let openAddTorrentSheet = Notification.Name("openAddTorrentSheet")
+}
+
+// MARK: - Window Chrome Configurator
+
+struct WindowConfigurator: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async {
+            guard let window = view.window else { return }
+            window.titlebarAppearsTransparent = true
+            window.styleMask.insert(.fullSizeContentView)
+            window.isMovableByWindowBackground = true
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {}
 }
