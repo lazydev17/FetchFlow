@@ -1,9 +1,15 @@
-<?xml version="1.0" encoding="utf-8"?>
-<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+<?xml version="1.0" standalone="yes"?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
     <channel>
-        <title>TorrentClient Changelog</title>
-        <link>https://raw.githubusercontent.com/satya-sanjay2110/TorrentClient/main/appcast.xml</link>
-        <description>Most recent updates for TorrentClient</description>
-        <language>en</language>
+        <title>TorrentClient</title>
+        <item>
+            <title>1.0.0</title>
+            <pubDate>Sun, 18 Oct 2026 23:15:32 +0530</pubDate>
+            <sparkle:version>1</sparkle:version>
+            <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.6</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <enclosure url="https://github.com/satya-sanjay2110/TorrentClient/releases/download/v1.0.0/TorrentClient-1.0.0.zip" length="4947091" type="application/octet-stream" sparkle:edSignature="ub6iH22vpd+pIDJCZXeca2WcXnbIFZua2dH7k3s7bCQS5JZ/8AhoLD9d8uBExYunb8QsdnMzVfZtwSqVzp7fCg=="/>
+        </item>
     </channel>
 </rss>
