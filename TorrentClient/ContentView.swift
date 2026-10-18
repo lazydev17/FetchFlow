@@ -2,9 +2,6 @@
 //  ContentView.swift
 //  TorrentClient
 //
-//  Main macOS interface using NavigationSplitView, native toolbar,
-//  integrated inspector, drag-and-drop, and liquid glass aesthetics.
-//
 
 import SwiftUI
 import AppKit
@@ -12,22 +9,16 @@ import AppKit
 struct ContentView: View {
     @StateObject private var torrentManager = TorrentManager()
     @State private var isPresentingAddSheet: Bool = false
-    @State private var showInspector: Bool = true
-    @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    @State private var showInspector: Bool = false
 
     var body: some View {
-        NavigationSplitView(columnVisibility: $columnVisibility) {
+        NavigationSplitView {
             FolderSidebar()
-                .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
-                .navigationTitle("TorrentClient")
+                .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 240)
         } detail: {
             FileList(isPresentingAddSheet: $isPresentingAddSheet)
                 .navigationTitle(torrentManager.activeFilter.rawValue)
-                .navigationSubtitle("\(torrentManager.filteredTorrents.count) items")
-        }
-        .inspector(isPresented: $showInspector) {
-            TorrentInspectorView()
-                .inspectorColumnWidth(min: 270, ideal: 300, max: 400)
+                .navigationSubtitle("\(torrentManager.filteredTorrents.count) downloads")
         }
         .searchable(text: $torrentManager.searchText, placement: .toolbar, prompt: "Search downloads...")
         .toolbar {
@@ -56,16 +47,6 @@ struct ContentView: View {
                 }
                 .buttonStyle(.bordered)
                 .help("Settings (⌘,)")
-
-                Button {
-                    withAnimation {
-                        showInspector.toggle()
-                    }
-                } label: {
-                    Image(systemName: "sidebar.right")
-                }
-                .buttonStyle(.bordered)
-                .help("Toggle Inspector")
             }
         }
         .dropDestination(for: URL.self) { urls, _ in
@@ -86,12 +67,5 @@ struct ContentView: View {
             isPresentingAddSheet = true
         }
         .environmentObject(torrentManager)
-        .frame(minWidth: 800, minHeight: 520)
-    }
-}
-
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView()
     }
 }
