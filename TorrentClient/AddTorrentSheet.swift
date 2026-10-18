@@ -24,14 +24,14 @@ struct AddTorrentSheet: View {
             HStack {
                 Image(systemName: "arrow.down.circle.fill")
                     .font(.system(size: 28))
-                    .foregroundColor(.accentColor)
+                    .foregroundStyle(Color.accentColor)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Add New Torrent")
                         .font(.title2)
                         .fontWeight(.semibold)
                     Text("Enter a magnet URI or select a local .torrent file")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
                 Spacer()
             }
@@ -65,7 +65,7 @@ struct AddTorrentSheet: View {
                         .font(.headline)
                     HStack {
                         Text(selectedFileURL?.lastPathComponent ?? "No file selected")
-                            .foregroundColor(selectedFileURL == nil ? .secondary : .primary)
+                            .foregroundStyle(selectedFileURL == nil ? .secondary : .primary)
                             .lineLimit(1)
                             .truncationMode(.middle)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -87,9 +87,9 @@ struct AddTorrentSheet: View {
                     .font(.headline)
                 HStack {
                     Image(systemName: "folder")
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                     Text(saveFolderURL.path)
-                        .foregroundColor(.primary)
+                        .foregroundStyle(.primary)
                         .lineLimit(1)
                         .truncationMode(.middle)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -106,7 +106,7 @@ struct AddTorrentSheet: View {
             
             if let error = errorMessage {
                 Text(error)
-                    .foregroundColor(.red)
+                    .foregroundStyle(.red)
                     .font(.caption)
             }
             

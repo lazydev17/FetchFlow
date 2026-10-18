@@ -74,7 +74,7 @@ struct FileList: View {
             Spacer()
             Image(systemName: torrentManager.activeFilter.iconName)
                 .font(.system(size: 48))
-                .foregroundColor(.secondary.opacity(0.6))
+                .foregroundStyle(.secondary.opacity(0.6))
             
             VStack(spacing: 4) {
                 Text(emptyTitle)
@@ -82,7 +82,7 @@ struct FileList: View {
                     .fontWeight(.medium)
                 Text(emptyDescription)
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
             
             Button {
@@ -94,6 +94,7 @@ struct FileList: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
             .padding(.top, 8)
+            .help("Add Torrent (⌘O)")
             
             Spacer()
         }
@@ -137,7 +138,7 @@ private struct TorrentCard: View {
             HStack(alignment: .top, spacing: 10) {
                 Image(systemName: torrent.state.iconName)
                     .font(.system(size: 18))
-                    .foregroundColor(stateColor)
+                    .foregroundStyle(stateColor)
                     .padding(.top, 2)
                 
                 VStack(alignment: .leading, spacing: 4) {
@@ -149,7 +150,7 @@ private struct TorrentCard: View {
                         Text(torrent.state.rawValue)
                             .font(.caption)
                             .fontWeight(.semibold)
-                            .foregroundColor(stateColor)
+                            .foregroundStyle(stateColor)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
                             .background(stateColor.opacity(0.15))
@@ -157,12 +158,12 @@ private struct TorrentCard: View {
                         
                         Text(torrent.formattedTotalSize)
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                         
                         if torrent.numPeers > 0 || torrent.numSeeds > 0 {
                             Text("• \(torrent.numSeeds) seeds, \(torrent.numPeers) peers")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }
@@ -177,6 +178,7 @@ private struct TorrentCard: View {
                     }
                     .buttonStyle(.bordered)
                     .help(torrent.state == .paused ? "Resume" : "Pause")
+                    .accessibilityLabel(torrent.state == .paused ? "Resume" : "Pause")
                     
                     Button(action: onOpenInFinder) {
                         Image(systemName: "folder")
@@ -184,14 +186,16 @@ private struct TorrentCard: View {
                     }
                     .buttonStyle(.bordered)
                     .help("Show in Finder")
+                    .accessibilityLabel("Show in Finder")
                     
                     Button(action: onDelete) {
                         Image(systemName: "trash")
                             .font(.system(size: 12))
-                            .foregroundColor(.red)
+                            .foregroundStyle(.red)
                     }
                     .buttonStyle(.bordered)
                     .help("Delete")
+                    .accessibilityLabel("Delete")
                     
                     if !torrent.files.isEmpty {
                         Button(action: onToggleExpand) {
@@ -200,6 +204,7 @@ private struct TorrentCard: View {
                         }
                         .buttonStyle(.bordered)
                         .help("Show Files")
+                        .accessibilityLabel("Show Files")
                     }
                 }
             }
@@ -213,7 +218,7 @@ private struct TorrentCard: View {
             HStack {
                 Text("\(torrent.formattedTotalDownloaded) of \(torrent.formattedTotalSize) (\(torrent.formattedProgress))")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                 
                 Spacer()
                 
@@ -222,21 +227,21 @@ private struct TorrentCard: View {
                         Text("↓ \(torrent.formattedDownloadRate)")
                             .font(.caption)
                             .fontWeight(.medium)
-                            .foregroundColor(.blue)
+                            .foregroundStyle(.blue)
                         
                         Text("↑ \(torrent.formattedUploadRate)")
                             .font(.caption)
                             .fontWeight(.medium)
-                            .foregroundColor(.green)
+                            .foregroundStyle(.green)
                         
                         Text(torrent.etaDescription)
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     }
                 } else if let error = torrent.error {
                     Text(error)
                         .font(.caption)
-                        .foregroundColor(.red)
+                        .foregroundStyle(.red)
                 }
             }
             
@@ -249,7 +254,7 @@ private struct TorrentCard: View {
                     Text("FILES (\(torrent.files.count))")
                         .font(.caption2)
                         .fontWeight(.bold)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                     
                     ForEach(torrent.files) { file in
                         HStack(spacing: 8) {
@@ -257,12 +262,12 @@ private struct TorrentCard: View {
                                 onToggleFile(file.index)
                             } label: {
                                 Image(systemName: file.isIncluded ? "checkmark.square.fill" : "square")
-                                    .foregroundColor(file.isIncluded ? .accentColor : .secondary)
+                                    .foregroundStyle(file.isIncluded ? Color.accentColor : Color.secondary)
                             }
                             .buttonStyle(.plain)
                             
                             Image(systemName: fileIconName(for: file.fileName))
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                                 .font(.system(size: 12))
                             
                             Text(file.fileName)
@@ -274,7 +279,7 @@ private struct TorrentCard: View {
                             
                             Text(file.formattedSize)
                                 .font(.caption2)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
                         .padding(.vertical, 2)
                     }

@@ -9,7 +9,7 @@ struct FolderSidebar: View {
             Text("LIBRARY")
                 .font(.caption)
                 .fontWeight(.bold)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
                 .padding(.bottom, 8)
@@ -32,20 +32,20 @@ struct FolderSidebar: View {
                 Text("LOCATION")
                     .font(.caption2)
                     .fontWeight(.bold)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                 
                 Button(action: {
                     NSWorkspace.shared.open(torrentManager.defaultSaveDirectory)
                 }) {
                     HStack(spacing: 8) {
                         Image(systemName: "folder")
-                            .foregroundColor(.accentColor)
+                            .foregroundStyle(Color.accentColor)
                         Text("Downloads")
                             .font(.subheadline)
                         Spacer()
                         Image(systemName: "arrow.up.right.square")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     }
                     .padding(.vertical, 4)
                     .contentShape(Rectangle())
@@ -62,7 +62,7 @@ struct FolderSidebar: View {
                 HStack(spacing: 4) {
                     Image(systemName: "arrow.down")
                         .font(.caption2)
-                        .foregroundColor(.blue)
+                        .foregroundStyle(.blue)
                     Text(ByteCountFormatter.string(fromByteCount: torrentManager.totalDownloadRate, countStyle: .binary) + "/s")
                         .font(.caption)
                         .fontWeight(.medium)
@@ -71,7 +71,7 @@ struct FolderSidebar: View {
                 HStack(spacing: 4) {
                     Image(systemName: "arrow.up")
                         .font(.caption2)
-                        .foregroundColor(.green)
+                        .foregroundStyle(.green)
                     Text(ByteCountFormatter.string(fromByteCount: torrentManager.totalUploadRate, countStyle: .binary) + "/s")
                         .font(.caption)
                         .fontWeight(.medium)
@@ -111,7 +111,7 @@ private struct SidebarRow: View {
         HStack(spacing: 8) {
             Image(systemName: filter.iconName)
                 .font(.system(size: 14))
-                .foregroundColor(isSelected ? .accentColor : .secondary)
+                .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
                 .frame(width: 18)
             
             Text(filter.rawValue)
@@ -123,7 +123,7 @@ private struct SidebarRow: View {
                 Text("\(count)")
                     .font(.caption2)
                     .fontWeight(.bold)
-                    .foregroundColor(isSelected ? .white : .secondary)
+                    .foregroundStyle(isSelected ? .white : .secondary)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(

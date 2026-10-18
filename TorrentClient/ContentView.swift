@@ -39,6 +39,9 @@ struct ContentView: View {
             AddTorrentSheet()
                 .environmentObject(torrentManager)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .openAddTorrentSheet)) { _ in
+            isPresentingAddSheet = true
+        }
         .frame(minWidth: 700, minHeight: 450)
     }
 }

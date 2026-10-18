@@ -9,7 +9,7 @@ struct CustomToolbarView: View {
             // Search Field
             HStack(spacing: 6) {
                 Image(systemName: "magnifyingglass")
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .font(.system(size: 13))
                 
                 TextField("Search downloads...", text: $torrentManager.searchText)
@@ -21,10 +21,11 @@ struct CustomToolbarView: View {
                         torrentManager.searchText = ""
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                             .font(.system(size: 12))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Clear search")
                 }
             }
             .padding(.vertical, 6)
@@ -44,6 +45,8 @@ struct CustomToolbarView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.regular)
+                .keyboardShortcut("o", modifiers: .command)
+                .help("Add Torrent (⌘O)")
                 
                 Button {
                     torrentManager.stopAll()
@@ -53,6 +56,17 @@ struct CustomToolbarView: View {
                 .buttonStyle(.bordered)
                 .controlSize(.regular)
                 .help("Pause All Torrents")
+                .accessibilityLabel("Pause All Torrents")
+                
+                Button {
+                    SettingsWindowController.show()
+                } label: {
+                    Image(systemName: "gearshape")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.regular)
+                .help("Settings (⌘,)")
+                .accessibilityLabel("Settings")
             }
         }
         .padding(.horizontal, 16)
