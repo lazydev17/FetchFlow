@@ -1,0 +1,112 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v1.0.1)'
+        required: true
+        default: 'v1.0.1'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build & Publish Release
+    runs-on: macos-15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine Version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            RAW_TAG="${{ github.event.inputs.tag }}"
+          else
+            RAW_TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          VERSION="${RAW_TAG#v}"
+          echo "tag=$RAW_TAG" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Target tag: $RAW_TAG, version: $VERSION"
+
+      - name: Build Release App
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "Building Release version $VERSION..."
+          xcodebuild clean build \
+            -project TorrentClient.xcodeproj \
+            -scheme TorrentClient \
+            -configuration Release \
+            -derivedDataPath build/DerivedData \
+            MARKETING_VERSION="$VERSION" \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGN_STYLE="Manual"
+
+      - name: Package Distribution Zip
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          mkdir -p releases
+          APP_PATH="build/DerivedData/Build/Products/Release/TorrentClient.app"
+          ZIP_NAME="TorrentClient-$VERSION.zip"
+          echo "Archiving $APP_PATH into releases/$ZIP_NAME..."
+          ditto -c -k --keepParent "$APP_PATH" "releases/$ZIP_NAME"
+          echo "Archive size: $(du -sh "releases/$ZIP_NAME" | awk '{print $1}')"
+
+      - name: Generate Sparkle Appcast
+        env:
+          SPARKLE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TAG="${{ steps.version.outputs.tag }}"
+          DOWNLOAD_PREFIX="https://github.com/${{ github.repository }}/releases/download/$TAG/"
+          
+          if [ -n "$SPARKLE_KEY" ]; then
+            echo "Signing appcast with SPARKLE_PRIVATE_KEY secret..."
+            echo "$SPARKLE_KEY" | ./scripts/bin/generate_appcast \
+              --download-url-prefix "$DOWNLOAD_PREFIX" \
+              --ed-key-file - \
+              releases/
+          else
+            echo "Notice: SPARKLE_PRIVATE_KEY secret not found in repository secrets."
+            echo "Skipping cryptographic signing of appcast feed."
+            ./scripts/bin/generate_appcast \
+              --download-url-prefix "$DOWNLOAD_PREFIX" \
+              releases/ || true
+          fi
+          
+          if [ -f releases/appcast.xml ]; then
+            cp releases/appcast.xml appcast.xml
+          fi
+
+      - name: Create GitHub Release & Upload Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: TorrentClient ${{ steps.version.outputs.tag }}
+          files: |
+            releases/TorrentClient-${{ steps.version.outputs.version }}.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit & Push Updated appcast.xml
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout main
+          if ! git diff --quiet appcast.xml; then
+            git add appcast.xml
+            git commit -m "chore: update appcast.xml for ${{ steps.version.outputs.tag }} [skip ci]"
+            git push origin main
+          else
+            echo "appcast.xml has no changes to commit."
+          fi
