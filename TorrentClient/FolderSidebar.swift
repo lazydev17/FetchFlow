@@ -1,71 +1,137 @@
 import SwiftUI
 
-/// This view represents the sidebar on the left of the main window.
-/// It displays a custom-styled list of all the available series.
 struct FolderSidebar: View {
+    @EnvironmentObject private var torrentManager: TorrentManager
     
-    // --- Properties ---
-    /// The complete list of series to display.
-    let series: [Series]
-    
-    /// A 'Binding' to the selected series ID. When a row is tapped, this updates
-    /// the @State variable in the ContentView.
-    @Binding var selection: Series.ID?
-
-    // --- Body ---
-    /// The content and layout of the view.
     var body: some View {
-        // A VStack to hold our custom title and the list.
         VStack(alignment: .leading, spacing: 0) {
-            
-            // --- Custom Header ---
-            // Since we're not in a Navigation view, we create our own title.
-            Text("Web Series")
-                .font(.title2)
+            // Header
+            Text("LIBRARY")
+                .font(.caption)
                 .fontWeight(.bold)
-                .padding()
-
-            // LAYOUT CHANGE: Replaced 'List' with a 'ScrollView' and 'LazyVStack'.
-            // This gives us complete control over the row styling, background, and selection.
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(series) { seriesItem in
-                        
-                        // --- Custom Row ---
-                        HStack {
-                            Image(systemName: "folder")
-                                .font(.title2)
-                            
-                            VStack(alignment: .leading) {
-                                Text(seriesItem.name)
-                                    .font(.headline)
-                                Text(seriesItem.totalSize)
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-                            Spacer() // Pushes the chevron to the right
-                            
-                            // Show a chevron only for the selected item
-                            if seriesItem.id == selection {
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .padding(.vertical, 8)
-                        .padding(.horizontal)
-                        // STYLE CHANGE: Manually set the background color for the selected row.
-                        .background(seriesItem.id == selection ? Color(.selectedContentBackgroundColor) : Color.clear)
-                        .cornerRadius(8)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 2)
-                        // This makes the entire row tappable.
-                        .onTapGesture {
-                            selection = seriesItem.id
-                        }
-                    }
-                }
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                .padding(.bottom, 8)
+            
+            // Filter List
+            List(TorrentFilter.allCases, id: \.self, selection: $torrentManager.activeFilter) { filter in
+                SidebarRow(
+                    filter: filter,
+                    count: countForFilter(filter),
+                    isSelected: torrentManager.activeFilter == filter
+                )
+                .tag(filter)
             }
+            .listStyle(.sidebar)
+            
+            Divider()
+            
+            // Quick Locations
+            VStack(alignment: .leading, spacing: 8) {
+                Text("LOCATION")
+                    .font(.caption2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.secondary)
+                
+                Button(action: {
+                    NSWorkspace.shared.open(torrentManager.defaultSaveDirectory)
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "folder")
+                            .foregroundColor(.accentColor)
+                        Text("Downloads")
+                            .font(.subheadline)
+                        Spacer()
+                        Image(systemName: "arrow.up.right.square")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            
+            Divider()
+            
+            // Footer Live Bandwidth Status
+            HStack(spacing: 12) {
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.down")
+                        .font(.caption2)
+                        .foregroundColor(.blue)
+                    Text(ByteCountFormatter.string(fromByteCount: torrentManager.totalDownloadRate, countStyle: .binary) + "/s")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                }
+                
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.up")
+                        .font(.caption2)
+                        .foregroundColor(.green)
+                    Text(ByteCountFormatter.string(fromByteCount: torrentManager.totalUploadRate, countStyle: .binary) + "/s")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                }
+                
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(Color(.controlBackgroundColor).opacity(0.5))
+        }
+    }
+    
+    private func countForFilter(_ filter: TorrentFilter) -> Int {
+        let all = Array(torrentManager.torrents.values)
+        switch filter {
+        case .all:
+            return all.count
+        case .downloading:
+            return all.filter { $0.state == .downloading || $0.state == .downloadingMetadata || $0.state == .checkingFiles }.count
+        case .completed:
+            return all.filter { $0.state == .finished || $0.state == .seeding }.count
+        case .paused:
+            return all.filter { $0.state == .paused }.count
+        case .active:
+            return all.filter { $0.downloadRate > 0 || $0.uploadRate > 0 }.count
         }
     }
 }
 
+private struct SidebarRow: View {
+    let filter: TorrentFilter
+    let count: Int
+    let isSelected: Bool
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: filter.iconName)
+                .font(.system(size: 14))
+                .foregroundColor(isSelected ? .accentColor : .secondary)
+                .frame(width: 18)
+            
+            Text(filter.rawValue)
+                .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
+            
+            Spacer()
+            
+            if count > 0 {
+                Text("\(count)")
+                    .font(.caption2)
+                    .fontWeight(.bold)
+                    .foregroundColor(isSelected ? .white : .secondary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(
+                        Capsule()
+                            .fill(isSelected ? Color.accentColor : Color.secondary.opacity(0.2))
+                    )
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}

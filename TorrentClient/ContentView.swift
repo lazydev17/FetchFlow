@@ -1,55 +1,50 @@
 import SwiftUI
 
 struct ContentView: View {
-    
-    @State private var allSeries = SampleData.series
-    
-    @State private var selectedSeriesId: Series.ID? = SampleData.series[4].id
+    @StateObject private var torrentManager = TorrentManager()
+    @State private var isPresentingAddSheet: Bool = false
+    @State private var sidebarWidth: CGFloat = 220
     
     var body: some View {
         VStack(spacing: 0) {
-            CustomToolbarView()
-
-            // A divider to separate the toolbar from the content below.
+            // Custom Toolbar
+            CustomToolbarView(isPresentingAddSheet: $isPresentingAddSheet)
+            
             Divider()
-
-            // --- Main Content Area ---
+            
+            // Main Content Area
             HStack(spacing: 0) {
+                // Sidebar
+                FolderSidebar()
+                    .frame(width: sidebarWidth)
                 
-                // --- Sidebar View (First Column) ---
-                FolderSidebar(series: allSeries, selection: $selectedSeriesId)
-                    .frame(minWidth: 250, maxWidth: 350)
-
-                // This divider creates the vertical line between the sidebar and the detail view.
+                // Resizable Divider
                 Divider()
-
-                // --- Detail View (Second Column) ---
-                FileList(series: selectedSeries())
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { value in
+                                let newWidth = value.location.x
+                                self.sidebarWidth = max(180, min(newWidth, 350))
+                            }
+                    )
+                
+                // Detail List
+                FileList(isPresentingAddSheet: $isPresentingAddSheet)
             }
         }
         .background(Color(.windowBackgroundColor))
         .ignoresSafeArea(edges: .top)
-    }
-
-    
-    // --- Helper Function ---
-    
-    /// A private helper function to find the full 'Series' object that corresponds
-    /// to the 'selectedSeriesId'.
-    private func selectedSeries() -> Series? {
-        if let id = selectedSeriesId {
-            return allSeries.first { $0.id == id }
+        .environmentObject(torrentManager)
+        .sheet(isPresented: $isPresentingAddSheet) {
+            AddTorrentSheet()
+                .environmentObject(torrentManager)
         }
-        return nil
+        .frame(minWidth: 700, minHeight: 450)
     }
 }
 
-
-// --- Xcode Preview ---
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
-            .preferredColorScheme(.dark)
     }
 }
-

@@ -1,69 +1,62 @@
 import SwiftUI
 
-/// This view represents our completely custom toolbar UI.
-/// We have full control over its appearance and layout.
 struct CustomToolbarView: View {
-    
-    // State to hold the text for our custom search field.
-    @State private var searchText = ""
+    @EnvironmentObject private var torrentManager: TorrentManager
+    @Binding var isPresentingAddSheet: Bool
     
     var body: some View {
-        // We use an HStack to lay out the toolbar items horizontally.
-        HStack {
-            // --- Search Field (Left Side) ---
-            HStack {
-                // Magnifying glass icon
+        HStack(spacing: 12) {
+            // Search Field
+            HStack(spacing: 6) {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.secondary)
+                    .font(.system(size: 13))
                 
-                // The actual text field for user input
-                TextField("Search episodes and series...", text: $searchText)
-                    .textFieldStyle(.plain) // Use plain style to remove default borders
+                TextField("Search downloads...", text: $torrentManager.searchText)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 13))
+                
+                if !torrentManager.searchText.isEmpty {
+                    Button {
+                        torrentManager.searchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
+                            .font(.system(size: 12))
+                    }
+                    .buttonStyle(.plain)
+                }
             }
-            .padding(.vertical, 8)
+            .padding(.vertical, 6)
             .padding(.horizontal, 10)
-            // This creates the rounded rectangle background for the search field.
-            .background(Color(.unemphasizedSelectedContentBackgroundColor))
+            .background(Color(.unemphasizedSelectedContentBackgroundColor).opacity(0.7))
             .cornerRadius(8)
+            .frame(maxWidth: 300)
             
-            // This spacer pushes the search field to the left and the buttons to the right.
             Spacer()
             
-            // --- Action Buttons (Right Side) ---
-            HStack {
+            // Action Buttons
+            HStack(spacing: 8) {
                 Button {
-                    // Action for adding a torrent
-                    print("Add Torrent button tapped")
+                    isPresentingAddSheet = true
                 } label: {
-                    // Use a Label for an icon and text together.
                     Label("Add Torrent", systemImage: "plus")
                 }
-                // This style gives the button a subtle border, similar to your design.
-                .buttonStyle(.bordered)
+                .buttonStyle(.borderedProminent)
+                .controlSize(.regular)
                 
                 Button {
-                    // Action for the more options menu
-                    print("More options button tapped")
+                    torrentManager.stopAll()
                 } label: {
-                    Image(systemName: "ellipsis.circle")
+                    Image(systemName: "pause.fill")
                 }
-                .buttonStyle(.plain) // Plain style for an icon-only button
-                .font(.title2)
+                .buttonStyle(.bordered)
+                .controlSize(.regular)
+                .help("Pause All Torrents")
             }
         }
-        // --- THIS IS THE KEY CHANGE ---
-        // We now manually control the padding to avoid the traffic lights.
-        .padding(.horizontal)
-        .padding(.leading, 60)
-        // Set a fixed height for our toolbar area.
-        .frame(height: 40)
+        .padding(.horizontal, 16)
+        .padding(.leading, 72) // Safe inset for macOS traffic light buttons
+        .frame(height: 48)
     }
 }
-
-struct CustomToolbarView_Previews: PreviewProvider {
-    static var previews: some View {
-        CustomToolbarView()
-            .preferredColorScheme(.light)
-    }
-}
-
