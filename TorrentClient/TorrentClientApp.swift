@@ -6,7 +6,7 @@ struct TorrentClientApp: App {
         WindowGroup {
             ContentView()
         }
-        .windowStyle(.hiddenTitleBar)
+        .windowToolbarStyle(.unified)
         .commands {
             CommandGroup(replacing: .appSettings) {
                 Button("Settings...") {
