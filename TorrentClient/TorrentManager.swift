@@ -247,6 +247,16 @@ public class TorrentManager: ObservableObject {
         wrapper.setFilePriority(Int32(fileIndex), priority: Int32(priority), infoHash: infoHash)
     }
     
+    public func setAllFilesIncluded(infoHash: String, included: Bool) {
+        guard var item = torrents[infoHash] else { return }
+        let priority = included ? 4 : 0
+        for i in 0..<item.files.count {
+            item.files[i].isIncluded = included
+            wrapper.setFilePriority(Int32(i), priority: Int32(priority), infoHash: infoHash)
+        }
+        torrents[infoHash] = item
+    }
+    
     public func openInFinder(_ infoHash: String) {
         guard let item = torrents[infoHash] else { return }
         let saveURL = URL(fileURLWithPath: item.savePath)

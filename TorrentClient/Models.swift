@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 // MARK: - Torrent State
 public enum TorrentState: String, CaseIterable, Codable {
@@ -19,6 +20,16 @@ public enum TorrentState: String, CaseIterable, Codable {
         case .seeding: return "arrow.up.circle.fill"
         case .paused: return "pause.circle.fill"
         case .error: return "exclamationmark.circle.fill"
+        }
+    }
+
+    public var tintColor: Color {
+        switch self {
+        case .downloading: return .accentColor
+        case .downloadingMetadata, .checkingFiles: return .purple
+        case .finished, .seeding: return .green
+        case .paused: return .orange
+        case .error: return .red
         }
     }
 }
@@ -152,6 +163,16 @@ public enum TorrentFilter: String, CaseIterable, Identifiable {
         case .completed: return "checkmark.circle"
         case .paused: return "pause.circle"
         case .active: return "bolt.circle"
+        }
+    }
+
+    public var tintColor: Color {
+        switch self {
+        case .all: return .accentColor
+        case .downloading: return .accentColor
+        case .completed: return .green
+        case .paused: return .orange
+        case .active: return .cyan
         }
     }
 }

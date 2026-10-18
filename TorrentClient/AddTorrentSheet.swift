@@ -2,146 +2,126 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 
+// MARK: - Input Mode
+
+enum TorrentInputMode: String, CaseIterable {
+    case magnet = "Magnet Link"
+    case file = ".torrent File"
+}
+
+// MARK: - Add Torrent Sheet
+
 struct AddTorrentSheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var torrentManager: TorrentManager
-    
-    @State private var inputMode: Int = 0 // 0 = Magnet Link, 1 = Torrent File
-    @State private var magnetLink: String = ""
-    @State private var selectedFileURL: URL? = nil
+
+    @State private var inputMode: TorrentInputMode = .magnet
+    @State private var magnetLink = ""
+    @State private var selectedFileURL: URL?
     @State private var saveFolderURL: URL
-    @State private var errorMessage: String? = nil
-    
+    @State private var errorMessage: String?
+
     init() {
         let downloads = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first
             ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Downloads")
         _saveFolderURL = State(initialValue: downloads)
     }
-    
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            // Header
-            HStack {
-                Image(systemName: "arrow.down.circle.fill")
-                    .font(.system(size: 28))
-                    .foregroundStyle(.primary)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Add New Torrent")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                    Text("Enter a magnet URI or select a local .torrent file")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer()
-            }
-            
-            // Picker
-            Picker("Source", selection: $inputMode) {
-                Text("Magnet Link").tag(0)
-                Text(".torrent File").tag(1)
-            }
-            .pickerStyle(.segmented)
-            
-            // Input Area
-            if inputMode == 0 {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Magnet Link:")
-                        .font(.headline)
-                    HStack {
-                        TextField("magnet:?xt=urn:btih:...", text: $magnetLink)
-                            .textFieldStyle(.roundedBorder)
-                        
-                        Button("Paste") {
-                            if let clip = NSPasteboard.general.string(forType: .string) {
-                                magnetLink = clip.trimmingCharacters(in: .whitespacesAndNewlines)
+        VStack(spacing: 0) {
+            Form {
+                Section {
+                    Picker("Source", selection: $inputMode) {
+                        ForEach(TorrentInputMode.allCases, id: \.self) { mode in
+                            Text(mode.rawValue).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    if inputMode == .magnet {
+                        LabeledContent("Magnet URI") {
+                            HStack {
+                                TextField("magnet:?xt=urn:btih:…", text: $magnetLink)
+                                    .textFieldStyle(.roundedBorder)
+
+                                Button("Paste") {
+                                    if let clip = NSPasteboard.general.string(forType: .string) {
+                                        magnetLink = clip.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    }
+                                }
+                                .controlSize(.small)
+                            }
+                        }
+                    } else {
+                        LabeledContent("File") {
+                            HStack {
+                                Text(selectedFileURL?.lastPathComponent ?? "No file selected")
+                                    .foregroundStyle(selectedFileURL == nil ? .secondary : .primary)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                                Button("Browse…", action: chooseTorrentFile)
+                                    .controlSize(.small)
                             }
                         }
                     }
-                }
-            } else {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Torrent File:")
+                } header: {
+                    Label("Add New Torrent", systemImage: "arrow.down.circle")
                         .font(.headline)
-                    HStack {
-                        Text(selectedFileURL?.lastPathComponent ?? "No file selected")
-                            .foregroundStyle(selectedFileURL == nil ? .secondary : .primary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(6)
-                            .background(Color(.textBackgroundColor))
-                            .cornerRadius(6)
-                            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.secondary.opacity(0.3), lineWidth: 1))
-                        
-                        Button("Browse...") {
-                            chooseTorrentFile()
+                }
+
+                Section("Destination") {
+                    LabeledContent("Save to") {
+                        HStack {
+                            Label(saveFolderURL.lastPathComponent, systemImage: "folder")
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+
+                            Spacer()
+
+                            Button("Choose…", action: chooseDestinationFolder)
+                                .controlSize(.small)
                         }
                     }
                 }
-            }
-            
-            // Destination Directory
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Save Location:")
-                    .font(.headline)
-                HStack {
-                    Image(systemName: "folder")
-                        .foregroundStyle(.secondary)
-                    Text(saveFolderURL.path)
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    Button("Choose...") {
-                        chooseDestinationFolder()
+
+                if let error = errorMessage {
+                    Section {
+                        Label(error, systemImage: "exclamationmark.triangle")
+                            .foregroundStyle(.red)
                     }
                 }
-                .padding(6)
-                .background(Color(.textBackgroundColor))
-                .cornerRadius(6)
-                .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.secondary.opacity(0.3), lineWidth: 1))
             }
-            
-            if let error = errorMessage {
-                Text(error)
-                    .foregroundStyle(.red)
-                    .font(.caption)
-            }
-            
-            Spacer()
-            
-            // Actions
+            .formStyle(.grouped)
+            .scrollContentBackground(.hidden)
+
+            Divider()
+
             HStack {
-                Button("Cancel") {
-                    dismiss()
-                }
-                .keyboardShortcut(.cancelAction)
-                
+                Button("Cancel", action: dismiss.callAsFunction)
+                    .keyboardShortcut(.cancelAction)
+
                 Spacer()
-                
-                Button("Add Torrent") {
-                    submit()
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.primary)
-                .keyboardShortcut(.defaultAction)
-                .disabled(isAddDisabled)
+
+                Button("Add Torrent", action: submit)
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(isAddDisabled)
             }
+            .padding()
         }
-        .padding(24)
-        .frame(width: 520, height: 350)
+        .frame(width: 520, height: 330)
     }
-    
+
     private var isAddDisabled: Bool {
-        if inputMode == 0 {
+        if inputMode == .magnet {
             return magnetLink.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         } else {
             return selectedFileURL == nil
         }
     }
-    
+
     private func chooseTorrentFile() {
         let panel = NSOpenPanel()
         panel.title = "Select Torrent File"
@@ -149,13 +129,13 @@ struct AddTorrentSheet: View {
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
         panel.canChooseFiles = true
-        
+
         if panel.runModal() == .OK, let url = panel.url {
             selectedFileURL = url
             errorMessage = nil
         }
     }
-    
+
     private func chooseDestinationFolder() {
         let panel = NSOpenPanel()
         panel.title = "Select Download Directory"
@@ -163,14 +143,14 @@ struct AddTorrentSheet: View {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.canCreateDirectories = true
-        
+
         if panel.runModal() == .OK, let url = panel.url {
             saveFolderURL = url
         }
     }
-    
+
     private func submit() {
-        if inputMode == 0 {
+        if inputMode == .magnet {
             let trimmed = magnetLink.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { return }
             if torrentManager.addMagnet(trimmed, saveLocation: saveFolderURL) != nil {

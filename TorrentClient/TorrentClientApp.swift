@@ -5,7 +5,9 @@ struct TorrentClientApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .tint(Color.accentColor)
         }
+        .defaultSize(width: 900, height: 600)
         .windowToolbarStyle(.unified)
         .commands {
             CommandGroup(after: .appInfo) {

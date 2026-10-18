@@ -1,84 +1,23 @@
 import SwiftUI
 import AppKit
 
-// MARK: - Settings-Style Glass Icon Badge
-struct SettingsBadgeIcon: View {
-    let systemImage: String
-    let gradient: [Color]
-    var size: CGFloat = 22
-    var iconSize: CGFloat = 11
-
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: size * 0.26, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: gradient,
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: size * 0.26, style: .continuous)
-                        .stroke(Color.white.opacity(0.22), lineWidth: 0.5)
-                )
-                .shadow(color: Color.black.opacity(0.12), radius: 1.5, x: 0, y: 0.8)
-
-            Image(systemName: systemImage)
-                .font(.system(size: iconSize, weight: .semibold))
-                .foregroundStyle(.white)
-        }
-        .frame(width: size, height: size)
-    }
-
-    static func gradient(for state: TorrentState) -> [Color] {
-        switch state {
-        case .downloading:
-            return [Color(white: 0.44), Color(white: 0.28)]
-        case .finished, .seeding:
-            return [Color(red: 0.18, green: 0.65, blue: 0.38), Color(red: 0.12, green: 0.52, blue: 0.28)]
-        case .paused:
-            return [Color(white: 0.55), Color(white: 0.40)]
-        case .checkingFiles, .downloadingMetadata:
-            return [Color(white: 0.48), Color(white: 0.35)]
-        case .error:
-            return [Color(red: 0.85, green: 0.25, blue: 0.25), Color(red: 0.70, green: 0.18, blue: 0.18)]
-        }
-    }
-
-    static func gradient(for filter: TorrentFilter) -> [Color] {
-        switch filter {
-        case .all:
-            return [Color(white: 0.50), Color(white: 0.36)]
-        case .downloading:
-            return [Color(white: 0.42), Color(white: 0.28)]
-        case .completed:
-            return [Color(red: 0.18, green: 0.65, blue: 0.38), Color(red: 0.12, green: 0.52, blue: 0.28)]
-        case .paused:
-            return [Color(white: 0.55), Color(white: 0.40)]
-        case .active:
-            return [Color(red: 0.86, green: 0.54, blue: 0.18), Color(red: 0.72, green: 0.40, blue: 0.12)]
-        }
-    }
-}
-
 struct FolderSidebar: View {
     @EnvironmentObject private var torrentManager: TorrentManager
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header: Library with breathing room below macOS window buttons
+            // Header: Library section title with breathing room below macOS window buttons
             Text("Library")
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 16)
-                .padding(.top, 40)
+                .padding(.top, 38)
                 .padding(.bottom, 6)
 
             // Category rows
-            VStack(spacing: 2) {
+            VStack(spacing: 3) {
                 ForEach(TorrentFilter.allCases) { filter in
-                    FinderSidebarRow(
+                    SidebarFilterRow(
                         filter: filter,
                         count: countForFilter(filter),
                         isSelected: torrentManager.activeFilter == filter
@@ -92,8 +31,41 @@ struct FolderSidebar: View {
             .padding(.horizontal, 10)
 
             Spacer()
+
+            // Aggregate speed footer
+            sidebarFooter
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    private var sidebarFooter: some View {
+        VStack(spacing: 4) {
+            Divider()
+
+            HStack(spacing: 10) {
+                HStack(spacing: 3) {
+                    Image(systemName: "arrow.down")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(Color.accentColor)
+                    Text(ByteCountFormatter.string(fromByteCount: torrentManager.totalDownloadRate, countStyle: .binary) + "/s")
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack(spacing: 3) {
+                    Image(systemName: "arrow.up")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.green)
+                    Text(ByteCountFormatter.string(fromByteCount: torrentManager.totalUploadRate, countStyle: .binary) + "/s")
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+        }
     }
 
     private func countForFilter(_ filter: TorrentFilter) -> Int {
@@ -108,7 +80,9 @@ struct FolderSidebar: View {
     }
 }
 
-private struct FinderSidebarRow: View {
+// MARK: - Sidebar Row Button
+
+private struct SidebarFilterRow: View {
     let filter: TorrentFilter
     let count: Int
     let isSelected: Bool
@@ -117,30 +91,39 @@ private struct FinderSidebarRow: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 8) {
+            HStack(spacing: 9) {
                 Image(systemName: filter.iconName)
-                    .font(.system(size: 15, weight: isSelected ? .medium : .regular))
-                    .foregroundStyle(Color(red: 0.15, green: 0.65, blue: 1.0))
-                    .frame(width: 20, alignment: .center)
+                    .font(.system(size: 14, weight: isSelected ? .semibold : .regular))
+                    .foregroundStyle(isSelected ? Color.white : filter.tintColor)
+                    .frame(width: 18, alignment: .center)
 
                 Text(filter.rawValue)
                     .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
-                    .foregroundStyle(isSelected ? Color.primary : Color.primary.opacity(0.85))
+                    .foregroundStyle(isSelected ? Color.white : Color.primary)
 
                 Spacer()
 
-                Text("\(count)")
-                    .font(.caption2.monospacedDigit())
-                    .foregroundStyle(isSelected ? Color.secondary : Color.secondary.opacity(0.6))
+                if count > 0 {
+                    Text("\(count)")
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 1.5)
+                        .background(
+                            Capsule()
+                                .fill(isSelected ? Color.white.opacity(0.25) : Color.primary.opacity(0.08))
+                        )
+                        .foregroundStyle(isSelected ? Color.white : Color.secondary)
+                }
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 5.5)
+            .contentShape(Rectangle())
             .background(
                 RoundedRectangle(cornerRadius: 6.5, style: .continuous)
                     .fill(
                         isSelected
-                            ? Color.primary.opacity(0.12)
-                            : (isHovered ? Color.primary.opacity(0.05) : Color.clear)
+                            ? Color.accentColor
+                            : (isHovered ? Color.primary.opacity(0.06) : Color.clear)
                     )
             )
         }

@@ -141,7 +141,7 @@ private struct SettingsSidebarView: View {
                 .padding(.top, 38)
                 .padding(.bottom, 6)
 
-            VStack(spacing: 2) {
+            VStack(spacing: 3) {
                 ForEach(SettingsTab.allCases) { tab in
                     SettingsSidebarRow(
                         tab: tab,
@@ -169,26 +169,27 @@ private struct SettingsSidebarRow: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 8) {
+            HStack(spacing: 9) {
                 Image(systemName: tab.systemImage)
-                    .font(.system(size: 15, weight: isSelected ? .medium : .regular))
-                    .foregroundStyle(Color(red: 0.15, green: 0.65, blue: 1.0))
-                    .frame(width: 20, alignment: .center)
+                    .font(.system(size: 14, weight: isSelected ? .semibold : .regular))
+                    .foregroundStyle(isSelected ? Color.white : Color.accentColor)
+                    .frame(width: 18, alignment: .center)
 
                 Text(tab.title)
                     .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
-                    .foregroundStyle(isSelected ? Color.primary : Color.primary.opacity(0.85))
+                    .foregroundStyle(isSelected ? Color.white : Color.primary)
 
                 Spacer()
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 5.5)
+            .contentShape(Rectangle())
             .background(
                 RoundedRectangle(cornerRadius: 6.5, style: .continuous)
                     .fill(
                         isSelected
-                            ? Color.primary.opacity(0.12)
-                            : (isHovered ? Color.primary.opacity(0.05) : Color.clear)
+                            ? Color.accentColor
+                            : (isHovered ? Color.primary.opacity(0.06) : Color.clear)
                     )
             )
         }
