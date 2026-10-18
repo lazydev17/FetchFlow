@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		636D7E8E2EAC17CE00AD80FA /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 636D7E8D2EAC17CE00AD80FA /* SystemConfiguration.framework */; };
+		63F100022E846E980057108D /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 63F100012E846E980057108D /* Sparkle.framework */; };
+		63F100032E846E980057108D /* Sparkle.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 63F100012E846E980057108D /* Sparkle.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -21,6 +23,7 @@
 		63329A722EA2F30C00787A5F /* libboost_thread.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libboost_thread.a; sourceTree = "<group>"; };
 		633F5D2C2E846E980057108D /* TorrentClient.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TorrentClient.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		636D7E8D2EAC17CE00AD80FA /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
+		63F100012E846E980057108D /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Sparkle.framework; path = Libraries/Sparkle.framework; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -37,6 +40,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				636D7E8E2EAC17CE00AD80FA /* SystemConfiguration.framework in Frameworks */,
+				63F100022E846E980057108D /* Sparkle.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -47,6 +51,7 @@
 			isa = PBXGroup;
 			children = (
 				636D7E8D2EAC17CE00AD80FA /* SystemConfiguration.framework */,
+				63F100012E846E980057108D /* Sparkle.framework */,
 				63329A732EA2F30C00787A5F /* boost_lib */,
 			);
 			name = Frameworks;
@@ -87,6 +92,20 @@
 		};
 /* End PBXGroup section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		63F100042E846E980057108D /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				63F100032E846E980057108D /* Sparkle.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXNativeTarget section */
 		633F5D2B2E846E980057108D /* TorrentClient */ = {
 			isa = PBXNativeTarget;
@@ -95,6 +114,7 @@
 				633F5D282E846E980057108D /* Sources */,
 				633F5D292E846E980057108D /* Frameworks */,
 				633F5D2A2E846E980057108D /* Resources */,
+				63F100042E846E980057108D /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -300,13 +320,23 @@
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Libraries",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TorrentClient/Info.plist;
 				"HEADER_SEARCH_PATHS[arch=*]" = (
 					"$(PROJECT_DIR)/Libraries/openssl_include/**",
 					"$(PROJECT_DIR)/Libraries/boost_include/**",
 					"$(PROJECT_DIR)/Libraries/libtorrent_include/**",
 				);
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_SUAllowsAutomaticUpdates = YES;
+				INFOPLIST_KEY_SUEnableAutomaticChecks = YES;
+				INFOPLIST_KEY_SUEnableInstallerLauncherService = YES;
+				INFOPLIST_KEY_SUFeedURL = "https://raw.githubusercontent.com/satya-sanjay2110/TorrentClient/main/appcast.xml";
+				INFOPLIST_KEY_SUPublicEDKey = "i1tiylZKTzkeCnQfdTE2MHVUIOz9MQF++zGNcxclcXU=";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -359,15 +389,44 @@
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Libraries",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TorrentClient/Info.plist;
+				"HEADER_SEARCH_PATHS[arch=*]" = (
+					"$(PROJECT_DIR)/Libraries/openssl_include/**",
+					"$(PROJECT_DIR)/Libraries/boost_include/**",
+					"$(PROJECT_DIR)/Libraries/libtorrent_include/**",
+				);
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_SUAllowsAutomaticUpdates = YES;
+				INFOPLIST_KEY_SUEnableAutomaticChecks = YES;
+				INFOPLIST_KEY_SUEnableInstallerLauncherService = YES;
+				INFOPLIST_KEY_SUFeedURL = "https://raw.githubusercontent.com/satya-sanjay2110/TorrentClient/main/appcast.xml";
+				INFOPLIST_KEY_SUPublicEDKey = "i1tiylZKTzkeCnQfdTE2MHVUIOz9MQF++zGNcxclcXU=";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				"LIBRARY_SEARCH_PATHS[arch=*]" = (
+					"$(PROJECT_DIR)/Libraries/**",
+					"$(PROJECT_DIR)/Libraries/boost_lib/**",
+					"$(PROJECT_DIR)/Libraries/openssl_lib/**",
+				);
 				MARKETING_VERSION = 1.0;
 				NEW_SETTING = "";
 				NEW_SETTING1 = "";
+				"OTHER_LDFLAGS[arch=*]" = (
+					"-ltorrent-rasterbar",
+					"-lboost_filesystem",
+					"-lboost_chrono",
+					"-lboost_random",
+					"-lboost_thread",
+					"-lssl",
+					"-lcrypto",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.ios.TorrentClient;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;

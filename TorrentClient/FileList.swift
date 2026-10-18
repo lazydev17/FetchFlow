@@ -8,21 +8,22 @@ struct FileList: View {
     @State private var showingDeleteConfirmation = false
 
     private var items: [TorrentModel] { torrentManager.filteredTorrents }
-    private var activeCount: Int { items.filter { $0.downloadRate > 0 || $0.uploadRate > 0 }.count }
 
     var body: some View {
         VStack(spacing: 0) {
-            libraryHeader
-            Divider()
-            if items.isEmpty { emptyState }
-            else {
+            if items.isEmpty {
+                emptyState
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(items) { torrent in
                             TorrentRow(
                                 torrent: torrent,
                                 isSelected: torrentManager.selectedInfoHash == torrent.infoHash,
-                                select: { torrentManager.selectedInfoHash = torrent.infoHash },
+                                select: {
+                                    toggleSelection(for: torrent)
+                                },
                                 togglePause: {
                                     torrent.state == .paused
                                         ? torrentManager.resumeTorrent(torrent.infoHash)
@@ -32,13 +33,22 @@ struct FileList: View {
                                 remove: { torrentToDelete = torrent; showingDeleteConfirmation = true }
                             )
                             .contentShape(Rectangle())
-                            .onTapGesture { torrentManager.selectedInfoHash = torrent.infoHash }
+                            .onTapGesture {
+                                toggleSelection(for: torrent)
+                            }
                             .contextMenu { contextMenu(for: torrent) }
                             Divider().padding(.leading, 64)
                         }
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
                 }
+            }
+
+            if let selectedTorrent = torrentManager.selectedTorrent {
+                Divider()
+                TorrentInspectorView(torrent: selectedTorrent)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .background(Color(nsColor: .underPageBackgroundColor))
@@ -51,41 +61,12 @@ struct FileList: View {
         }
     }
 
-    private var libraryHeader: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(torrentManager.activeFilter.rawValue)
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                    Text(items.isEmpty ? "Your transfer library" : "\(items.count) downloads · \(activeCount) active")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer()
-                Button { torrentManager.stopAll() } label: {
-                    Label("Pause All", systemImage: "pause.fill")
-                }
-                .disabled(activeCount == 0)
-                .help("Pause all transfers")
-            }
-            HStack(spacing: 18) {
-                transferMetric(title: "DOWNLOADING", value: ByteCountFormatter.string(fromByteCount: torrentManager.totalDownloadRate, countStyle: .binary) + "/s", icon: "arrow.down", color: .blue)
-                transferMetric(title: "UPLOADING", value: ByteCountFormatter.string(fromByteCount: torrentManager.totalUploadRate, countStyle: .binary) + "/s", icon: "arrow.up", color: .green)
-                Spacer()
-            }
-        }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 20)
-        .background(.bar)
-    }
-
-    private func transferMetric(title: String, value: String, icon: String, color: Color) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon).font(.system(size: 13, weight: .semibold)).foregroundStyle(color)
-                .frame(width: 28, height: 28).background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.system(size: 9, weight: .bold)).tracking(0.7).foregroundStyle(.secondary)
-                Text(value).font(.system(.caption, design: .monospaced).weight(.medium)).monospacedDigit()
+    private func toggleSelection(for torrent: TorrentModel) {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            if torrentManager.selectedInfoHash == torrent.infoHash {
+                torrentManager.selectedInfoHash = nil
+            } else {
+                torrentManager.selectedInfoHash = torrent.infoHash
             }
         }
     }

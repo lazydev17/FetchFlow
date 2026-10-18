@@ -36,3 +36,12 @@ libtorrent-build/
 *~
 *.orig
 *.bak
+
+# Sparkle Signing Keys & Secrets
+.sparkle/
+*.key
+
+# Local Release Archives
+releases/
+
+

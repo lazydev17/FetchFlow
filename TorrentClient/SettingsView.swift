@@ -232,6 +232,33 @@ struct GeneralSettingsPane: View {
                 }
                 .toggleStyle(.switch)
             }
+
+            Section("Software Updates") {
+                Toggle(isOn: Binding(
+                    get: { UpdaterViewModel.shared.automaticallyChecksForUpdates },
+                    set: { UpdaterViewModel.shared.automaticallyChecksForUpdates = $0 }
+                )) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Automatically check for updates")
+                        Text("Periodically checks for new releases in the background.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .toggleStyle(.switch)
+
+                HStack {
+                    Text("Installed Version")
+                    Spacer()
+                    Text("1.0 (Build 1)")
+                        .foregroundStyle(.secondary)
+                        .font(.callout)
+                    Button("Check Now…") {
+                        UpdaterViewModel.shared.checkForUpdates()
+                    }
+                    .controlSize(.small)
+                }
+            }
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
@@ -409,6 +436,7 @@ struct AboutSettingsPane: View {
                 LabeledContent("BitTorrent Engine", value: "libtorrent-rasterbar 2.0.11")
                 LabeledContent("Cryptography & SSL", value: "OpenSSL 3.1.2")
                 LabeledContent("Core Frameworks", value: "Boost 1.89.0")
+                LabeledContent("Software Updates", value: "Sparkle 2 (Ed25519 Signed)")
                 LabeledContent("User Interface", value: "SwiftUI + AppKit (macOS 15+)")
             }
 

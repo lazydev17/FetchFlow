@@ -9,16 +9,13 @@ import AppKit
 struct ContentView: View {
     @StateObject private var torrentManager = TorrentManager()
     @State private var isPresentingAddSheet: Bool = false
-    @State private var showInspector: Bool = false
 
     var body: some View {
         NavigationSplitView {
             FolderSidebar()
-                .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 240)
+                .navigationSplitViewColumnWidth(min: 170, ideal: 190, max: 230)
         } detail: {
             FileList(isPresentingAddSheet: $isPresentingAddSheet)
-                .navigationTitle(torrentManager.activeFilter.rawValue)
-                .navigationSubtitle("\(torrentManager.filteredTorrents.count) downloads")
         }
         .searchable(text: $torrentManager.searchText, placement: .toolbar, prompt: "Search downloads...")
         .toolbar {
@@ -31,14 +28,6 @@ struct ContentView: View {
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut("o", modifiers: .command)
                 .help("Add Torrent or Magnet (⌘O)")
-
-                Button {
-                    torrentManager.stopAll()
-                } label: {
-                    Image(systemName: "pause.fill")
-                }
-                .buttonStyle(.bordered)
-                .help("Pause All Transfers")
 
                 Button {
                     SettingsWindowController.show()

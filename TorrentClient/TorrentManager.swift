@@ -65,9 +65,6 @@ public class TorrentManager: ObservableObject {
                         savePath: self.defaultSaveDirectory.path
                     )
                     self.torrents[key] = item
-                    if self.selectedInfoHash == nil {
-                        self.selectedInfoHash = key
-                    }
                 }
                 self.recalculateAggregates()
             }
@@ -168,9 +165,6 @@ public class TorrentManager: ObservableObject {
                     savePath: destination.path
                 )
             }
-            if selectedInfoHash == nil {
-                selectedInfoHash = key
-            }
             persistTorrent(key: key, uri: trimmed, isFile: false, savePath: destination.path)
             return key
         }
@@ -189,9 +183,6 @@ public class TorrentManager: ObservableObject {
                     name: fileURL.deletingPathExtension().lastPathComponent,
                     savePath: destination.path
                 )
-            }
-            if selectedInfoHash == nil {
-                selectedInfoHash = key
             }
             persistTorrent(key: key, uri: fileURL.path, isFile: true, savePath: destination.path)
             return key

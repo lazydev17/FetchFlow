@@ -8,6 +8,10 @@ struct TorrentClientApp: App {
         }
         .windowToolbarStyle(.unified)
         .commands {
+            CommandGroup(after: .appInfo) {
+                CheckForUpdatesView()
+            }
+
             CommandGroup(replacing: .appSettings) {
                 Button("Settings...") {
                     SettingsWindowController.show()
@@ -22,6 +26,17 @@ struct TorrentClientApp: App {
                 .keyboardShortcut("o", modifiers: .command)
             }
         }
+    }
+}
+
+struct CheckForUpdatesView: View {
+    @ObservedObject private var updaterModel = UpdaterViewModel.shared
+
+    var body: some View {
+        Button("Check for Updates…") {
+            updaterModel.checkForUpdates()
+        }
+        .disabled(!updaterModel.canCheckForUpdates)
     }
 }
 

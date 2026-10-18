@@ -23,36 +23,6 @@ struct FolderSidebar: View {
                     .tag(filter)
                 }
             }
-
-            Section("DESTINATION") {
-                Button {
-                    NSWorkspace.shared.open(torrentManager.defaultSaveDirectory)
-                } label: {
-                    Label("Downloads", systemImage: "folder")
-                }
-                .buttonStyle(.plain)
-                .help("Open default download folder in Finder")
-            }
-
-            Section("BANDWIDTH") {
-                HStack(spacing: 6) {
-                    Image(systemName: "arrow.down")
-                        .font(.caption2)
-                        .foregroundStyle(.blue)
-                    Text(ByteCountFormatter.string(fromByteCount: torrentManager.totalDownloadRate, countStyle: .binary) + "/s")
-                        .font(.caption)
-                        .monospacedDigit()
-                }
-
-                HStack(spacing: 6) {
-                    Image(systemName: "arrow.up")
-                        .font(.caption2)
-                        .foregroundStyle(.green)
-                    Text(ByteCountFormatter.string(fromByteCount: torrentManager.totalUploadRate, countStyle: .binary) + "/s")
-                        .font(.caption)
-                        .monospacedDigit()
-                }
-            }
         }
         .listStyle(.sidebar)
         .navigationTitle("TorrentClient")
