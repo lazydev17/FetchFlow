@@ -24,7 +24,7 @@ struct AddTorrentSheet: View {
             HStack {
                 Image(systemName: "arrow.down.circle.fill")
                     .font(.system(size: 28))
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(.primary)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Add New Torrent")
                         .font(.title2)
@@ -125,6 +125,7 @@ struct AddTorrentSheet: View {
                     submit()
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(.primary)
                 .keyboardShortcut(.defaultAction)
                 .disabled(isAddDisabled)
             }

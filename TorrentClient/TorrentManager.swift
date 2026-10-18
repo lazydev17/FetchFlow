@@ -208,6 +208,22 @@ public class TorrentManager: ObservableObject {
             torrents[infoHash] = item
         }
     }
+
+    public var hasActiveTorrents: Bool {
+        torrents.values.contains { $0.state != .paused && $0.state != .finished }
+    }
+
+    public func pauseAll() {
+        for hash in torrents.keys {
+            pauseTorrent(hash)
+        }
+    }
+
+    public func resumeAll() {
+        for hash in torrents.keys {
+            resumeTorrent(hash)
+        }
+    }
     
     public func removeTorrent(_ infoHash: String, deleteFiles: Bool = false) {
         wrapper.removeTorrent(infoHash, deleteFiles: deleteFiles)

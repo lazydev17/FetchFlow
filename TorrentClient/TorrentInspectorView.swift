@@ -28,17 +28,20 @@ struct TorrentInspectorView: View {
                     filesTab
                 }
             }
-            .frame(height: 190)
+            .frame(height: 195)
         }
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(.ultraThinMaterial)
     }
 
     // MARK: - Header Bar
     private var headerBar: some View {
         HStack(spacing: 12) {
-            Image(systemName: torrent.state.iconName)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(stateColor(for: torrent.state))
+            SettingsBadgeIcon(
+                systemImage: torrent.state.iconName,
+                gradient: SettingsBadgeIcon.gradient(for: torrent.state),
+                size: 22,
+                iconSize: 11
+            )
 
             Text(torrent.name)
                 .font(.system(size: 13, weight: .semibold))
@@ -51,7 +54,7 @@ struct TorrentInspectorView: View {
                 .foregroundStyle(stateColor(for: torrent.state))
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
-                .background(stateColor(for: torrent.state).opacity(0.12), in: Capsule())
+                .background(Color(nsColor: .quaternaryLabelColor).opacity(0.5), in: Capsule())
 
             Spacer()
 
@@ -100,14 +103,14 @@ struct TorrentInspectorView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(.thinMaterial)
     }
 
     // MARK: - General Tab
     private var generalTab: some View {
-        HStack(alignment: .top, spacing: 20) {
-            // Column 1: Transfer
-            VStack(alignment: .leading, spacing: 10) {
+        HStack(alignment: .top, spacing: 12) {
+            // Column 1: Transfer Card
+            VStack(alignment: .leading, spacing: 8) {
                 Text("TRANSFER")
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(.secondary)
@@ -126,15 +129,15 @@ struct TorrentInspectorView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                HStack(spacing: 14) {
+                HStack(spacing: 12) {
                     Label(torrent.formattedDownloadRate, systemImage: "arrow.down")
                         .font(.caption)
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(.primary)
                         .monospacedDigit()
 
                     Label(torrent.formattedUploadRate, systemImage: "arrow.up")
                         .font(.caption)
-                        .foregroundStyle(.green)
+                        .foregroundStyle(.secondary)
                         .monospacedDigit()
                 }
 
@@ -144,18 +147,19 @@ struct TorrentInspectorView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(10)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(Color.white.opacity(0.12), lineWidth: 0.5))
 
-            Divider()
-
-            // Column 2: Swarm
-            VStack(alignment: .leading, spacing: 10) {
+            // Column 2: Swarm Card
+            VStack(alignment: .leading, spacing: 8) {
                 Text("SWARM")
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(.secondary)
                     .tracking(0.6)
 
-                HStack(spacing: 16) {
+                HStack(spacing: 14) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Seeds")
                             .font(.caption2)
@@ -180,18 +184,19 @@ struct TorrentInspectorView: View {
                         .lineLimit(2)
                 }
             }
-            .frame(width: 140, alignment: .leading)
+            .padding(10)
+            .frame(minWidth: 140, maxWidth: 140, maxHeight: .infinity, alignment: .topLeading)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(Color.white.opacity(0.12), lineWidth: 0.5))
 
-            Divider()
-
-            // Column 3: Storage & Hash
-            VStack(alignment: .leading, spacing: 10) {
+            // Column 3: Storage & Hash Card
+            VStack(alignment: .leading, spacing: 8) {
                 Text("STORAGE & HASH")
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(.secondary)
                     .tracking(0.6)
 
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text("Save Location:")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
@@ -201,13 +206,13 @@ struct TorrentInspectorView: View {
                         .truncationMode(.middle)
                 }
 
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text("Info Hash:")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                     HStack(spacing: 6) {
                         Text(torrent.infoHash)
-                            .font(.system(size: 10, design: .monospaced))
+                            .font(.system(size: 9, design: .monospaced))
                             .lineLimit(1)
                             .truncationMode(.middle)
                             .textSelection(.enabled)
@@ -223,10 +228,13 @@ struct TorrentInspectorView: View {
                     }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(10)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(Color.white.opacity(0.12), lineWidth: 0.5))
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
     }
 
     // MARK: - Files Tab
@@ -248,7 +256,7 @@ struct TorrentInspectorView: View {
                                 torrentManager.toggleFileIncluded(infoHash: torrent.infoHash, fileIndex: file.index)
                             } label: {
                                 Image(systemName: file.isIncluded ? "checkmark.circle.fill" : "circle")
-                                    .foregroundStyle(file.isIncluded ? Color.accentColor : Color.secondary)
+                                    .foregroundStyle(file.isIncluded ? .primary : .secondary)
                             }
                             .buttonStyle(.plain)
 
@@ -278,17 +286,18 @@ struct TorrentInspectorView: View {
                     }
                 }
                 .listStyle(.inset)
+                .scrollContentBackground(.hidden)
             }
         }
     }
 
     private func stateColor(for state: TorrentState) -> Color {
         switch state {
-        case .downloading: .blue
+        case .downloading: .primary
         case .finished, .seeding: .green
-        case .paused: .orange
-        case .checkingFiles: .indigo
-        case .downloadingMetadata: .purple
+        case .paused: .secondary
+        case .checkingFiles: .secondary
+        case .downloadingMetadata: .secondary
         case .error: .red
         }
     }

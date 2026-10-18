@@ -18,24 +18,17 @@ struct ContentView: View {
             FileList(isPresentingAddSheet: $isPresentingAddSheet)
         }
         .searchable(text: $torrentManager.searchText, placement: .toolbar, prompt: "Search downloads...")
+        .navigationTitle("")
         .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
+            ToolbarItem(placement: .primaryAction) {
                 Button {
                     isPresentingAddSheet = true
                 } label: {
-                    Label("Add Torrent", systemImage: "plus")
-                }
-                .buttonStyle(.borderedProminent)
-                .keyboardShortcut("o", modifiers: .command)
-                .help("Add Torrent or Magnet (⌘O)")
-
-                Button {
-                    SettingsWindowController.show()
-                } label: {
-                    Image(systemName: "gearshape")
+                    Image(systemName: "plus")
                 }
                 .buttonStyle(.bordered)
-                .help("Settings (⌘,)")
+                .keyboardShortcut("o", modifiers: .command)
+                .help("Add Torrent or Magnet (⌘O)")
             }
         }
         .dropDestination(for: URL.self) { urls, _ in
@@ -55,6 +48,25 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .openAddTorrentSheet)) { _ in
             isPresentingAddSheet = true
         }
+        .background(WindowGlassConfigurator())
         .environmentObject(torrentManager)
     }
+}
+
+private struct WindowGlassConfigurator: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async {
+            guard let window = view.window else { return }
+            window.title = ""
+            window.titleVisibility = .hidden
+            window.titlebarAppearsTransparent = true
+            window.toolbar?.showsBaselineSeparator = false
+            window.isMovableByWindowBackground = true
+            window.styleMask.insert(.fullSizeContentView)
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {}
 }

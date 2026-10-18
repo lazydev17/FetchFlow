@@ -133,18 +133,67 @@ private struct SettingsSidebarView: View {
     @Binding var selectedTab: SettingsTab?
 
     var body: some View {
-        List(selection: $selectedTab) {
-            ForEach(SettingsTab.allCases) { tab in
-                Label {
-                    Text(tab.title)
-                } icon: {
-                    Image(systemName: tab.systemImage)
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Settings")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 16)
+                .padding(.top, 38)
+                .padding(.bottom, 6)
+
+            VStack(spacing: 2) {
+                ForEach(SettingsTab.allCases) { tab in
+                    SettingsSidebarRow(
+                        tab: tab,
+                        isSelected: selectedTab == tab
+                    ) {
+                        withAnimation(.easeInOut(duration: 0.12)) {
+                            selectedTab = tab
+                        }
+                    }
                 }
-                .tag(tab)
             }
+            .padding(.horizontal, 10)
+
+            Spacer()
         }
-        .listStyle(.sidebar)
-        .navigationTitle("Settings")
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+}
+
+private struct SettingsSidebarRow: View {
+    let tab: SettingsTab
+    let isSelected: Bool
+    let action: () -> Void
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: tab.systemImage)
+                    .font(.system(size: 15, weight: isSelected ? .medium : .regular))
+                    .foregroundStyle(Color(red: 0.15, green: 0.65, blue: 1.0))
+                    .frame(width: 20, alignment: .center)
+
+                Text(tab.title)
+                    .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
+                    .foregroundStyle(isSelected ? Color.primary : Color.primary.opacity(0.85))
+
+                Spacer()
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(
+                RoundedRectangle(cornerRadius: 6.5, style: .continuous)
+                    .fill(
+                        isSelected
+                            ? Color.primary.opacity(0.12)
+                            : (isHovered ? Color.primary.opacity(0.05) : Color.clear)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
     }
 }
 
@@ -189,7 +238,7 @@ struct GeneralSettingsPane: View {
                 LabeledContent("Save files to") {
                     HStack(spacing: 8) {
                         Image(systemName: "folder.fill")
-                            .foregroundStyle(.blue)
+                            .foregroundStyle(.secondary)
 
                         Text(customSavePath.isEmpty ? defaultDownloadPath : customSavePath)
                             .lineLimit(1)
@@ -413,7 +462,7 @@ struct AboutSettingsPane: View {
                 HStack(spacing: 16) {
                     Image(systemName: "arrow.down.circle.fill")
                         .font(.system(size: 60))
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(.primary)
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text("TorrentClient")
