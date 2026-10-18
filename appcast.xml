@@ -3,13 +3,13 @@
     <channel>
         <title>TorrentClient</title>
         <item>
-            <title>1.0.0</title>
-            <pubDate>Sun, 18 Oct 2026 18:05:27 +0000</pubDate>
-            <sparkle:version>1</sparkle:version>
-            <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
+            <title>1.0.1</title>
+            <pubDate>Sun, 18 Oct 2026 18:19:32 +0000</pubDate>
+            <sparkle:version>2</sparkle:version>
+            <sparkle:shortVersionString>1.0.1</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.6</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/satya-sanjay2110/TorrentClient/releases/download/v1.0.0/TorrentClient-1.0.0.zip" length="4958532" type="application/octet-stream" sparkle:edSignature="EMD8AKZAfcT+9XWSRaiYGXmcNuMYdjBNpKujIhf3GXjwNwTFY6aITelWE+NCTGA5z94+9yZm/kx4GckeWSMkDw=="/>
+            <enclosure url="https://github.com/satya-sanjay2110/TorrentClient/releases/download/v1.0.1/TorrentClient-1.0.1.zip" length="4961299" type="application/octet-stream" sparkle:edSignature="FLGrhK38OHkcCH8zar7BYwGRFGRA5f9xStJeG+fsmi4KIyuSUx0VRGSxoil59mjZV/hTjRp1Kv08Rbk2vWVbDg=="/>
         </item>
     </channel>
 </rss>
