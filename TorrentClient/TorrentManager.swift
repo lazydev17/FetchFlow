@@ -12,6 +12,7 @@ private struct SavedTorrentRecord: Codable {
 public class TorrentManager: ObservableObject {
     @Published public var torrents: [String: TorrentModel] = [:]
     @Published public var selectedInfoHash: String? = nil
+    @Published public var checkedInfoHashes: Set<String> = []
     @Published public var activeFilter: TorrentFilter = .all
     @Published public var searchText: String = ""
     
@@ -213,6 +214,58 @@ public class TorrentManager: ObservableObject {
         torrents.values.contains { $0.state != .paused && $0.state != .finished }
     }
 
+    public var hasCheckedTorrents: Bool {
+        !checkedInfoHashes.isEmpty
+    }
+
+    public var checkedTorrents: [TorrentModel] {
+        checkedInfoHashes.compactMap { torrents[$0] }
+    }
+
+    public var hasActiveCheckedTorrents: Bool {
+        checkedTorrents.contains { $0.state != .paused && $0.state != .finished }
+    }
+
+    public func toggleCheck(_ infoHash: String) {
+        if checkedInfoHashes.contains(infoHash) {
+            checkedInfoHashes.remove(infoHash)
+        } else {
+            checkedInfoHashes.insert(infoHash)
+            selectedInfoHash = infoHash
+        }
+    }
+
+    public func toggleCheckAll(items: [TorrentModel]) {
+        let currentItemHashes = Set(items.map { $0.infoHash })
+        if checkedInfoHashes.isSuperset(of: currentItemHashes) {
+            checkedInfoHashes.subtract(currentItemHashes)
+        } else {
+            checkedInfoHashes.formUnion(currentItemHashes)
+            if let first = items.first {
+                selectedInfoHash = first.infoHash
+            }
+        }
+    }
+
+    public func pauseChecked() {
+        for hash in checkedInfoHashes {
+            pauseTorrent(hash)
+        }
+    }
+
+    public func resumeChecked() {
+        for hash in checkedInfoHashes {
+            resumeTorrent(hash)
+        }
+    }
+
+    public func removeChecked(deleteFiles: Bool = false) {
+        for hash in checkedInfoHashes {
+            removeTorrent(hash, deleteFiles: deleteFiles)
+        }
+        checkedInfoHashes.removeAll()
+    }
+
     public func pauseAll() {
         for hash in torrents.keys {
             pauseTorrent(hash)
@@ -228,6 +281,7 @@ public class TorrentManager: ObservableObject {
     public func removeTorrent(_ infoHash: String, deleteFiles: Bool = false) {
         wrapper.removeTorrent(infoHash, deleteFiles: deleteFiles)
         torrents.removeValue(forKey: infoHash)
+        checkedInfoHashes.remove(infoHash)
         if selectedInfoHash == infoHash {
             selectedInfoHash = torrents.keys.first
         }

@@ -9,34 +9,83 @@ import AppKit
 struct ContentView: View {
     @StateObject private var torrentManager = TorrentManager()
     @State private var isPresentingAddSheet = false
+    @State private var showingDeleteCheckedConfirmation = false
 
     var body: some View {
-        NavigationSplitView {
-            FolderSidebar()
-                .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 240)
-        } detail: {
+        VStack(spacing: 0) {
             FileList(isPresentingAddSheet: $isPresentingAddSheet)
-                .navigationTitle(torrentManager.activeFilter.rawValue)
-                .navigationSubtitle(statusSubtitle)
         }
-        .searchable(text: $torrentManager.searchText, placement: .toolbar, prompt: "Search downloads…")
+        .frame(minWidth: 780, minHeight: 480)
+        .searchable(text: $torrentManager.searchText, placement: .toolbar, prompt: "Search in downloads…")
         .toolbar {
+            ToolbarItemGroup(placement: .navigation) {
+                // Filter Dropdown
+                Menu {
+                    ForEach(TorrentFilter.allCases) { filter in
+                        Button {
+                            torrentManager.activeFilter = filter
+                        } label: {
+                            HStack {
+                                Text(filter.rawValue)
+                                if torrentManager.activeFilter == filter {
+                                    Spacer()
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Text(torrentManager.activeFilter.rawValue)
+                            .font(.system(size: 13, weight: .medium))
+
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .contentShape(Rectangle())
+                }
+                .menuIndicator(.hidden)
+            }
+
             ToolbarItemGroup(placement: .primaryAction) {
+                // Play / Pause Button (adapts to selected checkbox state)
                 Button {
-                    if torrentManager.hasActiveTorrents {
-                        torrentManager.pauseAll()
+                    if torrentManager.hasCheckedTorrents {
+                        if torrentManager.hasActiveCheckedTorrents {
+                            torrentManager.pauseChecked()
+                        } else {
+                            torrentManager.resumeChecked()
+                        }
                     } else {
-                        torrentManager.resumeAll()
+                        if torrentManager.hasActiveTorrents {
+                            torrentManager.pauseAll()
+                        } else {
+                            torrentManager.resumeAll()
+                        }
                     }
                 } label: {
                     Label(
-                        torrentManager.hasActiveTorrents ? "Pause All" : "Resume All",
-                        systemImage: torrentManager.hasActiveTorrents ? "pause.fill" : "play.fill"
+                        playPauseButtonTitle,
+                        systemImage: playPauseButtonIcon
                     )
                 }
-                .disabled(torrentManager.torrents.isEmpty)
-                .help(torrentManager.hasActiveTorrents ? "Pause All Downloads" : "Resume All Downloads")
+                .disabled(torrentManager.hasCheckedTorrents ? false : torrentManager.torrents.isEmpty)
+                .help(playPauseButtonHelp)
 
+                // Delete Button (Shown when a checkbox is selected)
+                if torrentManager.hasCheckedTorrents {
+                    Button(role: .destructive) {
+                        showingDeleteCheckedConfirmation = true
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    .help("Remove \(torrentManager.checkedInfoHashes.count) Selected Download(s)")
+                }
+
+                // Add Torrent Button
                 Button {
                     isPresentingAddSheet = true
                 } label: {
@@ -45,6 +94,7 @@ struct ContentView: View {
                 .keyboardShortcut("o", modifiers: .command)
                 .help("Add Torrent or Magnet (⌘O)")
 
+                // Inspector Details Toggle
                 Button {
                     withAnimation(.easeInOut(duration: 0.15)) {
                         if torrentManager.selectedInfoHash != nil {
@@ -60,10 +110,25 @@ struct ContentView: View {
                 .help(torrentManager.selectedInfoHash != nil ? "Hide Inspector" : "Show Inspector")
             }
         }
+        .confirmationDialog(
+            "Remove Download\(torrentManager.checkedInfoHashes.count > 1 ? "s" : "")",
+            isPresented: $showingDeleteCheckedConfirmation
+        ) {
+            Button("Remove from Client") {
+                torrentManager.removeChecked(deleteFiles: false)
+            }
+            Button("Remove and Delete Files", role: .destructive) {
+                torrentManager.removeChecked(deleteFiles: true)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Are you sure you want to remove \(torrentManager.checkedInfoHashes.count) selected download\(torrentManager.checkedInfoHashes.count == 1 ? "" : "s")?")
+        }
         .dropDestination(for: URL.self) { urls, _ in
             var handled = false
             for url in urls {
-                if url.pathExtension.lowercased() == "torrent" {
+                let ext = url.pathExtension.lowercased()
+                if ext == "torrent" {
                     torrentManager.addTorrentFile(url)
                     handled = true
                 }
@@ -80,19 +145,27 @@ struct ContentView: View {
         .environmentObject(torrentManager)
     }
 
-    private var statusSubtitle: String {
-        let count = torrentManager.filteredTorrents.count
-        if count == 0 { return "" }
+    private var playPauseButtonTitle: String {
+        if torrentManager.hasCheckedTorrents {
+            return torrentManager.hasActiveCheckedTorrents ? "Pause" : "Resume"
+        } else {
+            return torrentManager.hasActiveTorrents ? "Pause All" : "Resume All"
+        }
+    }
 
-        let dl = torrentManager.totalDownloadRate
-        let ul = torrentManager.totalUploadRate
-        var parts: [String] = ["\(count) torrent\(count == 1 ? "" : "s")"]
-        if dl > 0 {
-            parts.append("↓ \(ByteCountFormatter.string(fromByteCount: dl, countStyle: .binary))/s")
+    private var playPauseButtonIcon: String {
+        if torrentManager.hasCheckedTorrents {
+            return torrentManager.hasActiveCheckedTorrents ? "pause.fill" : "play.fill"
+        } else {
+            return torrentManager.hasActiveTorrents ? "pause.fill" : "play.fill"
         }
-        if ul > 0 {
-            parts.append("↑ \(ByteCountFormatter.string(fromByteCount: ul, countStyle: .binary))/s")
+    }
+
+    private var playPauseButtonHelp: String {
+        if torrentManager.hasCheckedTorrents {
+            return torrentManager.hasActiveCheckedTorrents ? "Pause Selected Download(s)" : "Resume Selected Download(s)"
+        } else {
+            return torrentManager.hasActiveTorrents ? "Pause All Downloads" : "Resume All Downloads"
         }
-        return parts.joined(separator: " — ")
     }
 }

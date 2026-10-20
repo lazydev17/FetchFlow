@@ -11,45 +11,44 @@ struct FileList: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if items.isEmpty {
-                emptyState
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                List(selection: Binding(
-                    get: { torrentManager.selectedInfoHash },
-                    set: { torrentManager.selectedInfoHash = $0 }
-                )) {
+            // Column Headers Bar
+            TableHeaderView(items: items)
+
+            Divider()
+
+            // Main Table & Persistent Drop Zone
+            ScrollView {
+                LazyVStack(spacing: 0) {
                     ForEach(items) { torrent in
-                        TorrentRow(torrent: torrent)
-                            .tag(torrent.infoHash)
-                            .contextMenu { contextMenu(for: torrent) }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) {
-                                    torrentToDelete = torrent
-                                    showingDeleteConfirmation = true
-                                } label: {
-                                    Label("Remove", systemImage: "trash")
+                        TorrentTableRow(
+                            torrent: torrent,
+                            isSelected: torrentManager.selectedInfoHash == torrent.infoHash,
+                            onSelect: {
+                                withAnimation(.easeInOut(duration: 0.12)) {
+                                    torrentManager.selectedInfoHash = torrent.infoHash
                                 }
+                            },
+                            onDelete: {
+                                torrentToDelete = torrent
+                                showingDeleteConfirmation = true
                             }
-                            .swipeActions(edge: .leading) {
-                                Button {
-                                    torrent.state == .paused
-                                        ? torrentManager.resumeTorrent(torrent.infoHash)
-                                        : torrentManager.pauseTorrent(torrent.infoHash)
-                                } label: {
-                                    Label(
-                                        torrent.state == .paused ? "Resume" : "Pause",
-                                        systemImage: torrent.state == .paused ? "play.fill" : "pause.fill"
-                                    )
-                                }
-                                .tint(torrent.state == .paused ? .green : .orange)
-                            }
+                        )
+                        .contextMenu { contextMenu(for: torrent) }
+
+                        Divider()
+                            .opacity(0.5)
                     }
+
+                    // Persistent Drag-and-Drop Dropzone
+                    PersistentDropZoneView(onTap: {
+                        isPresentingAddSheet = true
+                    })
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
                 }
-                .listStyle(.inset(alternatesRowBackgrounds: true))
-                .alternatingRowBackgrounds(.enabled)
             }
 
+            // Bottom Inspector Pane
             if let selectedTorrent = torrentManager.selectedTorrent {
                 Divider()
                 TorrentInspectorView(torrent: selectedTorrent)
@@ -65,28 +64,16 @@ struct FileList: View {
         }
     }
 
-    @ViewBuilder private var emptyState: some View {
-        if !torrentManager.searchText.isEmpty {
-            ContentUnavailableView.search
-        } else {
-            ContentUnavailableView {
-                Label(emptyTitle, systemImage: torrentManager.activeFilter.iconName)
-            } description: {
-                Text(emptyDescription)
-            } actions: {
-                Button("Add Download", systemImage: "plus") { isPresentingAddSheet = true }
-                    .buttonStyle(.bordered)
-                    .keyboardShortcut("o", modifiers: .command)
-            }
-        }
-    }
-
     @ViewBuilder private func contextMenu(for torrent: TorrentModel) -> some View {
         Button(torrent.state == .paused ? "Resume" : "Pause") {
             torrent.state == .paused ? torrentManager.resumeTorrent(torrent.infoHash) : torrentManager.pauseTorrent(torrent.infoHash)
         }
         Button("Show in Finder") { torrentManager.openInFinder(torrent.infoHash) }
         Divider()
+        Button("Copy Magnet Link") {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(torrent.magnetURI, forType: .string)
+        }
         Button("Copy Info Hash") {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(torrent.infoHash, forType: .string)
@@ -94,122 +81,317 @@ struct FileList: View {
         Divider()
         Button("Remove…", role: .destructive) { torrentToDelete = torrent; showingDeleteConfirmation = true }
     }
+}
 
-    private var emptyTitle: String {
-        switch torrentManager.activeFilter {
-        case .all: "No Downloads Yet"
-        case .downloading: "Nothing Downloading"
-        case .completed: "No Completed Downloads"
-        case .paused: "No Paused Downloads"
-        case .active: "No Active Transfers"
+// MARK: - Table Header View
+
+struct TableHeaderView: View {
+    @EnvironmentObject private var torrentManager: TorrentManager
+    let items: [TorrentModel]
+
+    private var allSelected: Bool {
+        !items.isEmpty && torrentManager.checkedInfoHashes.isSuperset(of: items.map { $0.infoHash })
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Toggle("", isOn: Binding(
+                get: { allSelected },
+                set: { _ in torrentManager.toggleCheckAll(items: items) }
+            ))
+            .toggleStyle(.checkbox)
+            .labelsHidden()
+            .frame(width: 34, alignment: .center)
+            
+            Text("Name")
+                .frame(maxWidth: .infinity, alignment: .leading)
+            
+            Text("Size")
+                .frame(width: 75, alignment: .trailing)
+            
+            Text("Status")
+                .frame(width: 150, alignment: .leading)
+                .padding(.leading, 8)
+            
+            Text("Download")
+                .frame(width: 80, alignment: .trailing)
+            
+            Text("Upload")
+                .frame(width: 80, alignment: .trailing)
+            
+            Text("Added")
+                .frame(width: 75, alignment: .trailing)
+            
+            Spacer()
+                .frame(width: 32)
+        }
+        .font(.system(size: 11, weight: .semibold))
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 7)
+        .background(Color(nsColor: .controlBackgroundColor).opacity(0.6))
+    }
+}
+
+// MARK: - Torrent Table Row
+
+struct TorrentTableRow: View {
+    let torrent: TorrentModel
+    let isSelected: Bool
+    let onSelect: () -> Void
+    let onDelete: () -> Void
+
+    @EnvironmentObject private var torrentManager: TorrentManager
+    @State private var isHovered = false
+
+    private var isChecked: Bool {
+        torrentManager.checkedInfoHashes.contains(torrent.infoHash)
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            // Checkbox
+            Toggle("", isOn: Binding(
+                get: { isChecked },
+                set: { _ in torrentManager.toggleCheck(torrent.infoHash) }
+            ))
+            .toggleStyle(.checkbox)
+            .labelsHidden()
+            .frame(width: 34, alignment: .center)
+
+            // Name with Folder/Doc Icon
+            HStack(spacing: 8) {
+                Image(systemName: torrent.files.count > 1 ? "folder.fill" : "doc.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color.accentColor)
+
+                Text(torrent.name)
+                    .font(.system(size: 12.5, weight: isSelected ? .semibold : .regular))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Size
+            Text(torrent.formattedTotalSize)
+                .font(.system(size: 12).monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(width: 75, alignment: .trailing)
+
+            // Status Column: Thick Progress Bar with Info Inside
+            ThickStatusProgressBar(torrent: torrent)
+                .frame(width: 150)
+                .padding(.leading, 8)
+
+            // Download Speed
+            Text(torrent.downloadRate > 0 ? torrent.formattedDownloadRate : "0 B/s")
+                .font(.system(size: 11.5).monospacedDigit())
+                .foregroundStyle(torrent.downloadRate > 0 ? Color.primary : Color.secondary)
+                .frame(width: 80, alignment: .trailing)
+
+            // Upload Speed
+            Text(torrent.uploadRate > 0 ? torrent.formattedUploadRate : "0 B/s")
+                .font(.system(size: 11.5).monospacedDigit())
+                .foregroundStyle(torrent.uploadRate > 0 ? Color.green : Color.secondary)
+                .frame(width: 80, alignment: .trailing)
+
+            // Added Date
+            Text(torrent.shortDateAdded)
+                .font(.system(size: 11.5))
+                .foregroundStyle(.secondary)
+                .frame(width: 75, alignment: .trailing)
+
+            // 3-dots Context Menu Button (Vertical without arrow)
+            Menu {
+                Button(torrent.state == .paused ? "Resume" : "Pause") {
+                    torrent.state == .paused ? torrentManager.resumeTorrent(torrent.infoHash) : torrentManager.pauseTorrent(torrent.infoHash)
+                }
+                Button("Show in Finder") {
+                    torrentManager.openInFinder(torrent.infoHash)
+                }
+                Divider()
+                Button("Copy Magnet Link") {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(torrent.magnetURI, forType: .string)
+                }
+                Button("Copy Info Hash") {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(torrent.infoHash, forType: .string)
+                }
+                Divider()
+                Button("Remove…", role: .destructive) {
+                    onDelete()
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .rotationEffect(.degrees(90))
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 24, height: 24)
+                    .contentShape(Rectangle())
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .frame(width: 32, alignment: .center)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(rowBackground)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onSelect()
+        }
+        .onHover { hovering in
+            isHovered = hovering
         }
     }
 
-    private var emptyDescription: String {
-        switch torrentManager.activeFilter {
-        case .all: "Add a magnet link or torrent file to get started."
-        case .downloading: "Your downloads will appear here when they start."
-        case .completed: "Completed transfers will be collected here."
-        case .paused: "Paused transfers will appear here."
-        case .active: "There are no transfers moving data right now."
+    @ViewBuilder private var rowBackground: some View {
+        if isSelected {
+            Color.accentColor.opacity(0.14)
+        } else if isChecked {
+            Color.accentColor.opacity(0.08)
+        } else if isHovered {
+            Color(nsColor: .quaternaryLabelColor).opacity(0.4)
+        } else {
+            Color.clear
         }
     }
 }
 
-// MARK: - Torrent Row
+// MARK: - Thick Status Progress Bar
 
-struct TorrentRow: View {
+struct ThickStatusProgressBar: View {
     let torrent: TorrentModel
-    @EnvironmentObject private var torrentManager: TorrentManager
+
+    private var statusText: String {
+        switch torrent.state {
+        case .finished:
+            return "Completed"
+        case .downloading:
+            if torrent.etaDescription != "Downloading" {
+                return "\(torrent.formattedProgress) • \(torrent.etaDescription)"
+            } else {
+                return torrent.formattedProgress
+            }
+        case .paused:
+            return "Paused • \(torrent.formattedProgress)"
+        case .seeding:
+            return "Seeding • \(torrent.formattedProgress)"
+        case .checkingFiles:
+            return "Checking • \(torrent.formattedProgress)"
+        case .downloadingMetadata:
+            return "Fetching Metadata"
+        case .error:
+            return torrent.error ?? "Error"
+        }
+    }
+
+    private var tintColor: Color {
+        torrent.state == .finished ? Color.green : torrent.state.tintColor
+    }
 
     var body: some View {
-        HStack(spacing: 12) {
-            // State icon
-            Image(systemName: torrent.state.iconName)
-                .font(.title2)
-                .foregroundStyle(torrent.state.tintColor)
-                .frame(width: 26)
+        GeometryReader { geo in
+            let fillWidth = max(0, min(geo.size.width * CGFloat(torrent.progress), geo.size.width))
 
-            // Main content
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 7) {
-                    Text(torrent.name)
-                        .font(.system(.body, weight: .semibold))
-                        .lineLimit(1)
+            ZStack(alignment: .leading) {
+                // Background track
+                Capsule()
+                    .fill(Color(nsColor: .separatorColor).opacity(0.35))
 
-                    Text(torrent.state.rawValue.uppercased())
-                        .font(.system(size: 8.5, weight: .bold))
-                        .tracking(0.4)
-                        .foregroundStyle(torrent.state.tintColor)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(torrent.state.tintColor.opacity(0.12), in: Capsule())
-                        .overlay(Capsule().stroke(torrent.state.tintColor.opacity(0.24), lineWidth: 0.5))
-                }
+                // Progress fill (clipped to capsule container)
+                Rectangle()
+                    .fill(tintColor)
+                    .frame(width: fillWidth)
 
-                ProgressView(value: torrent.progress)
-                    .tint(torrent.state.tintColor)
+                // Base text (over unfilled track)
+                Text(statusText)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(.primary.opacity(0.85))
+                    .lineLimit(1)
+                    .padding(.horizontal, 8)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
 
-                HStack(spacing: 14) {
-                    Text("\(torrent.formattedTotalDownloaded) of \(torrent.formattedTotalSize)")
-
-                    if torrent.state == .downloading || torrent.state == .seeding {
-                        HStack(spacing: 3) {
-                            Image(systemName: "arrow.down")
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundStyle(Color.accentColor)
-                            Text(torrent.formattedDownloadRate)
+                // High-contrast white text (clipped to filled track)
+                Text(statusText)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .padding(.horizontal, 8)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                    .mask(
+                        HStack(spacing: 0) {
+                            Rectangle()
+                                .frame(width: fillWidth)
+                            Spacer(minLength: 0)
                         }
-
-                        HStack(spacing: 3) {
-                            Image(systemName: "arrow.up")
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundStyle(.green)
-                            Text(torrent.formattedUploadRate)
-                        }
-
-                        Text(torrent.etaDescription)
-                            .foregroundStyle(.secondary)
-                    } else if torrent.numPeers > 0 || torrent.numSeeds > 0 {
-                        Text("\(torrent.numSeeds) seeds · \(torrent.numPeers) peers")
-                    }
-
-                    if let error = torrent.error {
-                        Text(error)
-                            .foregroundStyle(.red)
-                            .lineLimit(1)
-                    }
-                }
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .monospacedDigit()
+                    )
             }
-
-            Spacer(minLength: 0)
-
-            // Quick Action Buttons
-            HStack(spacing: 4) {
-                Button {
-                    torrent.state == .paused
-                        ? torrentManager.resumeTorrent(torrent.infoHash)
-                        : torrentManager.pauseTorrent(torrent.infoHash)
-                } label: {
-                    Image(systemName: torrent.state == .paused ? "play.fill" : "pause.fill")
-                        .frame(width: 16, height: 16)
-                }
-                .help(torrent.state == .paused ? "Resume" : "Pause")
-
-                Button {
-                    torrentManager.openInFinder(torrent.infoHash)
-                } label: {
-                    Image(systemName: "folder")
-                        .frame(width: 16, height: 16)
-                }
-                .help("Show in Finder")
-            }
-            .buttonStyle(.borderless)
-            .controlSize(.small)
+            .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(Color.primary.opacity(0.08), lineWidth: 0.5)
+            )
         }
-        .padding(.vertical, 4)
+        .frame(height: 20)
+    }
+}
+
+
+struct PersistentDropZoneView: View {
+    let onTap: () -> Void
+    @EnvironmentObject private var torrentManager: TorrentManager
+    @State private var isTargeted = false
+    @State private var isHovered = false
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "arrow.down.doc")
+                .font(.system(size: 26, weight: .light))
+                .foregroundStyle(isTargeted ? Color.accentColor : Color.secondary.opacity(0.8))
+
+            Text("Drag-and-drop URL or torrent file")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(isTargeted ? Color.accentColor : Color.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 120)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(isTargeted ? Color.accentColor.opacity(0.08) : (isHovered ? Color(nsColor: .controlBackgroundColor).opacity(0.5) : Color.clear))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(
+                    isTargeted ? Color.accentColor : Color.secondary.opacity(0.35),
+                    style: StrokeStyle(lineWidth: 1.5, dash: [8, 5])
+                )
+        )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onTap()
+        }
+        .onHover { hovering in
+            isHovered = hovering
+            if hovering {
+                NSCursor.pointingHand.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
+        .dropDestination(for: URL.self) { urls, _ in
+            var handled = false
+            for url in urls {
+                let ext = url.pathExtension.lowercased()
+                if ext == "torrent" {
+                    torrentManager.addTorrentFile(url)
+                    handled = true
+                }
+            }
+            return handled
+        } isTargeted: { targeted in
+            isTargeted = targeted
+        }
     }
 }

@@ -61,11 +61,13 @@ public struct TorrentModel: Identifiable, Hashable {
     public var downloadRate: Int64
     public var uploadRate: Int64
     public var totalDownloaded: Int64
+    public var totalUploaded: Int64
     public var totalSize: Int64
     public var state: TorrentState
     public var numPeers: Int
     public var numSeeds: Int
     public var savePath: String
+    public var priority: String
     public var files: [TorrentFileItem]
     public var error: String?
     public var dateAdded: Date
@@ -77,11 +79,13 @@ public struct TorrentModel: Identifiable, Hashable {
                 downloadRate: Int64 = 0,
                 uploadRate: Int64 = 0,
                 totalDownloaded: Int64 = 0,
+                totalUploaded: Int64 = 0,
                 totalSize: Int64 = 0,
                 state: TorrentState = .downloading,
                 numPeers: Int = 0,
                 numSeeds: Int = 0,
                 savePath: String = "",
+                priority: String = "Normal",
                 files: [TorrentFileItem] = [],
                 error: String? = nil,
                 dateAdded: Date = Date()) {
@@ -92,11 +96,13 @@ public struct TorrentModel: Identifiable, Hashable {
         self.downloadRate = downloadRate
         self.uploadRate = uploadRate
         self.totalDownloaded = totalDownloaded
+        self.totalUploaded = totalUploaded
         self.totalSize = totalSize
         self.state = state
         self.numPeers = numPeers
         self.numSeeds = numSeeds
         self.savePath = savePath
+        self.priority = priority
         self.files = files
         self.error = error
         self.dateAdded = dateAdded
@@ -118,6 +124,33 @@ public struct TorrentModel: Identifiable, Hashable {
     
     public var formattedTotalDownloaded: String {
         ByteCountFormatter.string(fromByteCount: totalDownloaded, countStyle: .file)
+    }
+
+    public var formattedTotalUploaded: String {
+        ByteCountFormatter.string(fromByteCount: totalUploaded, countStyle: .file)
+    }
+
+    public var ratioDescription: String {
+        guard totalDownloaded > 0 else { return "0.000" }
+        let ratio = Double(totalUploaded) / Double(totalDownloaded)
+        return String(format: "%.3f", ratio)
+    }
+
+    public var magnetURI: String {
+        let dn = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name
+        return "magnet:?xt=urn:btih:\(infoHash)&dn=\(dn)"
+    }
+
+    public var shortDateAdded: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d MMM"
+        return formatter.string(from: dateAdded)
+    }
+
+    public var fullDateAdded: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d MMM yyyy, h:mm a"
+        return formatter.string(from: dateAdded)
     }
     
     public var formattedTotalSize: String {
@@ -148,7 +181,7 @@ public struct TorrentModel: Identifiable, Hashable {
 
 // MARK: - Torrent Filter / Category
 public enum TorrentFilter: String, CaseIterable, Identifiable {
-    case all = "All Downloads"
+    case all = "All"
     case downloading = "Downloading"
     case completed = "Completed"
     case paused = "Paused"
