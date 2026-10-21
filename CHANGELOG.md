@@ -4,6 +4,14 @@ All notable changes to FetchFlow will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.0.5] - 2026-10-22
+
+### Added
+- Smart media download heuristic: automatically selects multi-episode TV series and music albums while skipping small sample clips
+- Security safeguards: automatically excludes and badges risky executables, scripts, and phishing links (`.exe`, `.scr`, `.bat`, `.cmd`, `.msi`, `.lnk`, etc.)
+- Visual risk badges in the Files inspector tab with warning shield icons
+- "Select All" safely excludes risky files from bulk download
+
 ## [1.0.4] - 2026-10-22
 
 ### Added
@@ -58,6 +66,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Sparkle auto-update integration
 - GitHub Actions release pipeline with DMG packaging
 
+[1.0.5]: https://github.com/lazydev17/FetchFlow/releases/tag/v1.0.5
 [1.0.4]: https://github.com/lazydev17/FetchFlow/releases/tag/v1.0.4
 [1.0.3]: https://github.com/lazydev17/FetchFlow/releases/tag/v1.0.3
 [1.0.2]: https://github.com/lazydev17/FetchFlow/releases/tag/v1.0.2
