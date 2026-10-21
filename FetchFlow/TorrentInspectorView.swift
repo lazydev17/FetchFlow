@@ -363,9 +363,9 @@ struct InspectorFilesTab: View {
                                 .toggleStyle(.checkbox)
                                 .labelsHidden()
 
-                                Image(systemName: fileIcon(for: file.fileName))
+                                Image(systemName: fileIcon(for: file))
                                     .font(.system(size: 13))
-                                    .foregroundStyle(fileIconColor(for: file.fileName))
+                                    .foregroundStyle(fileIconColor(for: file))
                                     .frame(width: 16)
 
                                 Text(file.fileName)
@@ -373,6 +373,20 @@ struct InspectorFilesTab: View {
                                     .foregroundStyle(file.isIncluded ? .primary : .secondary)
                                     .lineLimit(1)
                                     .truncationMode(.middle)
+
+                                if file.isRisky {
+                                    HStack(spacing: 3) {
+                                        Image(systemName: "exclamationmark.shield.fill")
+                                            .font(.system(size: 9))
+                                        Text("Risky")
+                                            .font(.system(size: 9, weight: .bold))
+                                    }
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 1.5)
+                                    .background(Color.red.opacity(0.12), in: RoundedRectangle(cornerRadius: 3))
+                                    .foregroundStyle(.red)
+                                    .help("Executable or script file. Automatically skipped for security.")
+                                }
 
                                 Spacer()
 
@@ -410,9 +424,11 @@ struct InspectorFilesTab: View {
         }
     }
 
-    private func fileIcon(for filename: String) -> String {
-        let ext = (filename as NSString).pathExtension.lowercased()
-        switch ext {
+    private func fileIcon(for file: TorrentFileItem) -> String {
+        if file.isRisky {
+            return "exclamationmark.shield"
+        }
+        switch file.fileExtension {
         case "mp4", "mkv", "avi", "mov", "webm", "m4v": return "film"
         case "mp3", "flac", "wav", "aac", "m4a", "ogg": return "music.note"
         case "zip", "tar", "gz", "rar", "7z", "bz2": return "doc.zipper"
@@ -422,9 +438,11 @@ struct InspectorFilesTab: View {
         }
     }
 
-    private func fileIconColor(for filename: String) -> Color {
-        let ext = (filename as NSString).pathExtension.lowercased()
-        switch ext {
+    private func fileIconColor(for file: TorrentFileItem) -> Color {
+        if file.isRisky {
+            return .red
+        }
+        switch file.fileExtension {
         case "mp4", "mkv", "avi", "mov", "webm", "m4v": return .purple
         case "mp3", "flac", "wav", "aac", "m4a", "ogg": return .pink
         case "zip", "tar", "gz", "rar", "7z", "bz2": return .orange

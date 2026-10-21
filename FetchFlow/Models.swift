@@ -73,6 +73,31 @@ public struct TorrentFileItem: Identifiable, Hashable, Codable {
         return (path as NSString).lastPathComponent
     }
     
+    public var fileExtension: String {
+        return (fileName as NSString).pathExtension.lowercased()
+    }
+    
+    /// Identifies risky files that should never be downloaded by default (executables, scripts, phishing shortcuts)
+    public var isRisky: Bool {
+        let riskyExtensions: Set<String> = [
+            "exe", "dll", "com", "scr", "pif", "bat", "cmd", "msi", "msp", "sys", "cpl", "gadget",
+            "vbs", "vbe", "js", "jse", "wsf", "wsh", "ps1", "ps1xml", "ps2", "psc1", "psc2", "sh", "bash", "py", "pl", "rb", "php",
+            "app", "command", "tool",
+            "lnk", "url", "website", "reg", "inf", "hta", "chm", "hlp", "jar", "class",
+            "html", "htm"
+        ]
+        return riskyExtensions.contains(fileExtension)
+    }
+    
+    /// Identifies playable video/audio media files
+    public var isMedia: Bool {
+        let mediaExtensions: Set<String> = [
+            "mp4", "mkv", "avi", "mov", "wmv", "flv", "webm", "m4v", "ts", "m2ts", "vob", "mpg", "mpeg", "ogv", "3gp", "rmvb", "asf", "divx",
+            "mp3", "flac", "wav", "m4a", "aac", "ogg", "opus", "alac", "aiff", "wma", "ape"
+        ]
+        return mediaExtensions.contains(fileExtension)
+    }
+    
     public var formattedSize: String {
         ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
     }

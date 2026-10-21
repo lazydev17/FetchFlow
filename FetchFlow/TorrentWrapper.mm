@@ -31,6 +31,7 @@
 #include <sstream>
 #include <string>
 #include <thread>
+#include <unordered_set>
 #include <vector>
 
 using namespace lt;
@@ -105,6 +106,95 @@ static std::string handle_hash(lt::torrent_handle const& handle) {
 
 static std::string resume_path(std::string const& directory, std::string const& infoHash) {
     return directory + "/" + infoHash + ".resume";
+}
+
+static bool resume_exists(std::string const& directory, std::string const& infoHash) {
+    if (infoHash.empty()) return false;
+    std::string path = resume_path(directory, infoHash);
+    std::ifstream input(path, std::ios::binary);
+    return input.good();
+}
+
+// MARK: - Safe File Filtering & Media Selection
+
+static std::string file_extension(std::string const& path) {
+    auto pos = path.rfind('.');
+    if (pos == std::string::npos || pos == path.length() - 1) return "";
+    std::string ext = path.substr(pos + 1);
+    for (auto &c : ext) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    return ext;
+}
+
+static bool is_risky_file_extension(std::string const& ext) {
+    static const std::unordered_set<std::string> risky = {
+        // Windows executables & system binaries
+        "exe", "dll", "com", "scr", "pif", "bat", "cmd", "msi", "msp", "sys", "cpl", "gadget",
+        // Scripts & code
+        "vbs", "vbe", "js", "jse", "wsf", "wsh", "ps1", "ps1xml", "ps2", "psc1", "psc2", "sh", "bash", "py", "pl", "rb", "php",
+        // macOS executables / scripts bundled in torrents
+        "app", "command", "tool",
+        // Shortcuts, registry & help files
+        "lnk", "url", "website", "reg", "inf", "hta", "chm", "hlp", "jar", "class",
+        // Phishing / fake codec links
+        "html", "htm"
+    };
+    return risky.find(ext) != risky.end();
+}
+
+static bool is_media_extension(std::string const& ext) {
+    static const std::unordered_set<std::string> media = {
+        // Video
+        "mp4", "mkv", "avi", "mov", "wmv", "flv", "webm", "m4v", "ts", "m2ts", "vob", "mpg", "mpeg", "ogv", "3gp", "rmvb", "asf", "divx",
+        // Audio
+        "mp3", "flac", "wav", "m4a", "aac", "ogg", "opus", "alac", "aiff", "wma", "ape"
+    };
+    return media.find(ext) != media.end();
+}
+
+static std::vector<lt::download_priority_t> calculate_safe_default_priorities(lt::file_storage const& files) {
+    int numFiles = files.num_files();
+    std::vector<lt::download_priority_t> priorities(numFiles, lt::dont_download);
+    if (numFiles <= 0) return priorities;
+
+    int largestMediaIndex = -1;
+    std::int64_t largestMediaSize = -1;
+
+    int largestSafeIndex = -1;
+    std::int64_t largestSafeSize = -1;
+
+    for (int i = 0; i < numFiles; ++i) {
+        lt::file_index_t fileIndex(i);
+        std::string path = files.file_path(fileIndex);
+        std::string ext = file_extension(path);
+        std::int64_t size = files.file_size(fileIndex);
+
+        // Risky files are strictly excluded from default download
+        if (is_risky_file_extension(ext)) {
+            continue;
+        }
+
+        if (is_media_extension(ext)) {
+            if (size > largestMediaSize) {
+                largestMediaSize = size;
+                largestMediaIndex = i;
+            }
+        }
+
+        if (size > largestSafeSize) {
+            largestSafeSize = size;
+            largestSafeIndex = i;
+        }
+    }
+
+    if (largestMediaIndex >= 0) {
+        // Prioritize ONLY the single largest media file
+        priorities[largestMediaIndex] = lt::default_priority;
+    } else if (largestSafeIndex >= 0) {
+        // If no video/audio media file exists, select only the largest safe file
+        priorities[largestSafeIndex] = lt::default_priority;
+    }
+
+    return priorities;
 }
 
 static std::vector<char> read_file(std::string const& path) {
@@ -438,8 +528,20 @@ static NSArray<NSDictionary<NSString *, id> *> *extract_files(lt::torrent_handle
                     }
                     else if (auto metadata = lt::alert_cast<lt::metadata_received_alert>(alert)) {
                         std::string hash = handle_hash(metadata->handle);
-                        NSArray *files = extract_files(metadata->handle);
                         auto info = metadata->handle.torrent_file();
+
+                        // Enforce safe default priorities for new magnet torrents without prior resume data:
+                        bool hasResume = resume_exists(strongSelf->_resumeDir, hash);
+                        if (!hasResume && info && info->num_files() > 0) {
+                            try {
+                                auto safePriorities = calculate_safe_default_priorities(info->files());
+                                metadata->handle.prioritize_files(safePriorities);
+                            } catch (std::exception const& e) {
+                                NSLog(@"Failed to set safe priorities on metadata: %s", e.what());
+                            }
+                        }
+
+                        NSArray *files = extract_files(metadata->handle);
                         std::int64_t totalSize = info ? info->total_size() : 0;
                         std::string name = (info && !info->name().empty()) ? info->name() : hash;
 
@@ -823,9 +925,14 @@ static NSArray<NSDictionary<NSString *, id> *> *extract_files(lt::torrent_handle
         }
 
         bool restored = merge_resume_data(_resumeDir, hash, params);
-        if (!restored && !_autoStartNewTorrents.load()) {
-            params.flags |= lt::torrent_flags::paused;
-            params.flags &= ~lt::torrent_flags::auto_managed;
+        if (!restored) {
+            if (params.ti && params.ti->num_files() > 0) {
+                params.file_priorities = calculate_safe_default_priorities(params.ti->files());
+            }
+            if (!_autoStartNewTorrents.load()) {
+                params.flags |= lt::torrent_flags::paused;
+                params.flags &= ~lt::torrent_flags::auto_managed;
+            }
         }
 
         hash = info_hash_to_hex(params.info_hashes);
@@ -867,9 +974,14 @@ static NSArray<NSDictionary<NSString *, id> *> *extract_files(lt::torrent_handle
         }
 
         bool restored = merge_resume_data(_resumeDir, hash, params);
-        if (!restored && !_autoStartNewTorrents.load()) {
-            params.flags |= lt::torrent_flags::paused;
-            params.flags &= ~lt::torrent_flags::auto_managed;
+        if (!restored) {
+            if (params.ti && params.ti->num_files() > 0) {
+                params.file_priorities = calculate_safe_default_priorities(params.ti->files());
+            }
+            if (!_autoStartNewTorrents.load()) {
+                params.flags |= lt::torrent_flags::paused;
+                params.flags &= ~lt::torrent_flags::auto_managed;
+            }
         }
 
         hash = info_hash_to_hex(params.info_hashes);

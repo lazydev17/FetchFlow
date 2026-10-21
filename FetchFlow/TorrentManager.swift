@@ -217,6 +217,7 @@ public class TorrentManager: ObservableObject {
                 let previousInclusion = Dictionary(
                     uniqueKeysWithValues: (self.torrents[key]?.files ?? []).map { ($0.index, $0.isIncluded) }
                 )
+                let isNewTorrent = previousInclusion.isEmpty
 
                 var fileItems: [TorrentFileItem] = []
                 for dict in rawFiles {
@@ -232,6 +233,28 @@ public class TorrentManager: ObservableObject {
                         progress: prog,
                         isIncluded: previousInclusion[idx] ?? (priority > 0)
                     ))
+                }
+
+                // If this is a newly added torrent without prior user file customization:
+                // Safely select ONLY the single largest media file, and skip all risky/unsecure files.
+                if isNewTorrent && !fileItems.isEmpty {
+                    let mediaFiles = fileItems.filter { $0.isMedia && !$0.isRisky }
+                    let targetIndex: Int?
+                    if let largestMedia = mediaFiles.max(by: { $0.size < $1.size }) {
+                        targetIndex = largestMedia.index
+                    } else if let largestSafe = fileItems.filter({ !$0.isRisky }).max(by: { $0.size < $1.size }) {
+                        targetIndex = largestSafe.index
+                    } else {
+                        targetIndex = nil
+                    }
+
+                    for i in 0..<fileItems.count {
+                        let shouldInclude = (fileItems[i].index == targetIndex) && !fileItems[i].isRisky
+                        fileItems[i].isIncluded = shouldInclude
+                        let p = shouldInclude ? 4 : 0
+                        self.wrapper.setFilePriority(Int32(fileItems[i].index), priority: Int32(p), infoHash: key)
+                    }
+                    self.wrapper.saveResumeData(forTorrent: key)
                 }
 
                 if var item = self.torrents[key] {
@@ -566,9 +589,15 @@ public class TorrentManager: ObservableObject {
 
     public func setAllFilesIncluded(infoHash: String, included: Bool) {
         guard var item = torrents[infoHash], !item.files.isEmpty else { return }
-        let priority = included ? 4 : 0
         for i in 0..<item.files.count {
+            // Safeguard: Never automatically batch-select risky files
+            if included && item.files[i].isRisky {
+                item.files[i].isIncluded = false
+                wrapper.setFilePriority(Int32(i), priority: 0, infoHash: infoHash)
+                continue
+            }
             item.files[i].isIncluded = included
+            let priority = included ? 4 : 0
             wrapper.setFilePriority(Int32(i), priority: Int32(priority), infoHash: infoHash)
         }
         if included {
