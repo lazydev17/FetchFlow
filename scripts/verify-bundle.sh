@@ -71,8 +71,9 @@ fi
 
 # 3. Deployment Target Gate (minos check)
 MINOS="$(otool -l "$APP_BIN" | awk '/cmd LC_BUILD_VERSION/{flag=1; next} flag && /minos/{print $2; exit}')"
+SDK_VER="$(otool -l "$APP_BIN" | awk '/cmd LC_BUILD_VERSION/{flag=1; next} flag && /sdk/{print $2; exit}')"
 if [ "$MINOS" = "15.6" ] || [ "$MINOS" = "15.0" ]; then
-    pass "Mach-O deployment target verified: minos ${MINOS}"
+    pass "Mach-O deployment target verified: minos ${MINOS} (linked against SDK ${SDK_VER})"
 else
     fail "Mach-O deployment target mismatch: minos ${MINOS} (expected <= 15.6)"
 fi
