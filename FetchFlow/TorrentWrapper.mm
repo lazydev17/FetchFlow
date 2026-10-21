@@ -141,26 +141,40 @@ static bool is_risky_file_extension(std::string const& ext) {
     return risky.find(ext) != risky.end();
 }
 
-static bool is_media_extension(std::string const& ext) {
-    static const std::unordered_set<std::string> media = {
-        // Video
-        "mp4", "mkv", "avi", "mov", "wmv", "flv", "webm", "m4v", "ts", "m2ts", "vob", "mpg", "mpeg", "ogv", "3gp", "rmvb", "asf", "divx",
-        // Audio
+static bool is_video_extension(std::string const& ext) {
+    static const std::unordered_set<std::string> video = {
+        "mp4", "mkv", "avi", "mov", "wmv", "flv", "webm", "m4v", "ts", "m2ts", "vob", "mpg", "mpeg", "ogv", "3gp", "rmvb", "asf", "divx"
+    };
+    return video.find(ext) != video.end();
+}
+
+static bool is_audio_extension(std::string const& ext) {
+    static const std::unordered_set<std::string> audio = {
         "mp3", "flac", "wav", "m4a", "aac", "ogg", "opus", "alac", "aiff", "wma", "ape"
     };
-    return media.find(ext) != media.end();
+    return audio.find(ext) != audio.end();
 }
+
+static bool is_media_extension(std::string const& ext) {
+    return is_video_extension(ext) || is_audio_extension(ext);
+}
+
+struct SafeFileEntry {
+    int index;
+    std::string ext;
+    std::int64_t size;
+    bool isVideo;
+    bool isAudio;
+};
 
 static std::vector<lt::download_priority_t> calculate_safe_default_priorities(lt::file_storage const& files) {
     int numFiles = files.num_files();
     std::vector<lt::download_priority_t> priorities(numFiles, lt::dont_download);
     if (numFiles <= 0) return priorities;
 
-    int largestMediaIndex = -1;
-    std::int64_t largestMediaSize = -1;
-
-    int largestSafeIndex = -1;
-    std::int64_t largestSafeSize = -1;
+    std::vector<SafeFileEntry> safeFiles;
+    std::vector<SafeFileEntry> videoFiles;
+    std::vector<SafeFileEntry> audioFiles;
 
     for (int i = 0; i < numFiles; ++i) {
         lt::file_index_t fileIndex(i);
@@ -173,25 +187,50 @@ static std::vector<lt::download_priority_t> calculate_safe_default_priorities(lt
             continue;
         }
 
-        if (is_media_extension(ext)) {
-            if (size > largestMediaSize) {
-                largestMediaSize = size;
-                largestMediaIndex = i;
-            }
-        }
+        bool isVid = is_video_extension(ext);
+        bool isAud = is_audio_extension(ext);
+        SafeFileEntry entry{ i, ext, size, isVid, isAud };
+        safeFiles.push_back(entry);
 
-        if (size > largestSafeSize) {
-            largestSafeSize = size;
-            largestSafeIndex = i;
-        }
+        if (isVid) videoFiles.push_back(entry);
+        if (isAud) audioFiles.push_back(entry);
     }
 
-    if (largestMediaIndex >= 0) {
-        // Prioritize ONLY the single largest media file
-        priorities[largestMediaIndex] = lt::default_priority;
-    } else if (largestSafeIndex >= 0) {
-        // If no video/audio media file exists, select only the largest safe file
-        priorities[largestSafeIndex] = lt::default_priority;
+    if (!videoFiles.empty()) {
+        std::sort(videoFiles.begin(), videoFiles.end(), [](SafeFileEntry const& a, SafeFileEntry const& b) {
+            return a.size > b.size;
+        });
+
+        std::int64_t maxVideoSize = videoFiles[0].size;
+
+        if (videoFiles.size() == 1) {
+            priorities[videoFiles[0].index] = lt::default_priority;
+        } else {
+            std::int64_t secondVideoSize = videoFiles[1].size;
+            // If dominant (e.g. main movie vs small sample clip), select only the main movie:
+            if (secondVideoSize * 3 < maxVideoSize) {
+                priorities[videoFiles[0].index] = lt::default_priority;
+            } else {
+                // TV series or multi-episode pack: select all episodes >= 15% of largest
+                std::int64_t threshold = static_cast<std::int64_t>(maxVideoSize * 0.15);
+                for (auto const& vf : videoFiles) {
+                    if (vf.size >= threshold) {
+                        priorities[vf.index] = lt::default_priority;
+                    }
+                }
+            }
+        }
+    } else if (!audioFiles.empty()) {
+        // Music album or audio pack: select all audio files
+        for (auto const& af : audioFiles) {
+            priorities[af.index] = lt::default_priority;
+        }
+    } else if (!safeFiles.empty()) {
+        // No media files: select single largest safe file
+        auto largestSafe = std::max_element(safeFiles.begin(), safeFiles.end(), [](SafeFileEntry const& a, SafeFileEntry const& b) {
+            return a.size < b.size;
+        });
+        priorities[largestSafe->index] = lt::default_priority;
     }
 
     return priorities;

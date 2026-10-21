@@ -89,13 +89,25 @@ public struct TorrentFileItem: Identifiable, Hashable, Codable {
         return riskyExtensions.contains(fileExtension)
     }
     
-    /// Identifies playable video/audio media files
-    public var isMedia: Bool {
-        let mediaExtensions: Set<String> = [
-            "mp4", "mkv", "avi", "mov", "wmv", "flv", "webm", "m4v", "ts", "m2ts", "vob", "mpg", "mpeg", "ogv", "3gp", "rmvb", "asf", "divx",
+    /// Identifies playable video files
+    public var isVideo: Bool {
+        let videoExtensions: Set<String> = [
+            "mp4", "mkv", "avi", "mov", "wmv", "flv", "webm", "m4v", "ts", "m2ts", "vob", "mpg", "mpeg", "ogv", "3gp", "rmvb", "asf", "divx"
+        ]
+        return videoExtensions.contains(fileExtension)
+    }
+
+    /// Identifies playable audio files
+    public var isAudio: Bool {
+        let audioExtensions: Set<String> = [
             "mp3", "flac", "wav", "m4a", "aac", "ogg", "opus", "alac", "aiff", "wma", "ape"
         ]
-        return mediaExtensions.contains(fileExtension)
+        return audioExtensions.contains(fileExtension)
+    }
+
+    /// Identifies playable video/audio media files
+    public var isMedia: Bool {
+        return isVideo || isAudio
     }
     
     public var formattedSize: String {
