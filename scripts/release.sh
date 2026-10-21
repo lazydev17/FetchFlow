@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# release.sh - Complete local release orchestrator for TorrentClient (FetchFlow).
+# release.sh - Complete local release orchestrator for FetchFlow.
 #
 # Pipeline:
 #   1. Clean Release build for Apple Silicon (arm64)
@@ -161,7 +161,7 @@ echo "----------------------------------------------------------------------"
 echo " SUGGESTED GITHUB RELEASE NOTES:"
 echo "----------------------------------------------------------------------"
 cat <<EOF
-## FetchFlow (TorrentClient) ${TAG}
+## FetchFlow ${TAG}
 
 ### What's New
 - Native Apple Silicon (arm64) high-performance BitTorrent engine powered by libtorrent-rasterbar 2.0.11.

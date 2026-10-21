@@ -10,7 +10,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 APP_NAME="TorrentClient"
-VOL_NAME="FetchFlow (TorrentClient)"
+VOL_NAME="FetchFlow"
 
 # Input .app path (default: release build from DerivedData or argument)
 APP_PATH="${1:-}"

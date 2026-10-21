@@ -487,10 +487,10 @@ struct AboutSettingsPane: View {
                         .foregroundStyle(.primary)
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("TorrentClient")
+                        Text("FetchFlow")
                             .font(.title2.bold())
 
-                        Text("\(appVersion) (FetchFlow Engine)")
+                        Text("Version \(appVersion)")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
 

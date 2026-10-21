@@ -8,7 +8,7 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in TorrentClient (FetchFlow), **please do not open a public issue**.
+If you discover a security vulnerability in FetchFlow, **please do not open a public issue**.
 
 Instead, please report it responsibly by contacting the maintainer directly through:
 

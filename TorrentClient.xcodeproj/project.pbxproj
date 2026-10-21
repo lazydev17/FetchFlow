@@ -347,6 +347,7 @@
 					"$(PROJECT_DIR)/Libraries/boost_include/**",
 					"$(PROJECT_DIR)/Libraries/libtorrent_include/**",
 				);
+				INFOPLIST_KEY_CFBundleDisplayName = FetchFlow;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_SUAllowsAutomaticUpdates = YES;
 				INFOPLIST_KEY_SUEnableAutomaticChecks = YES;
@@ -417,6 +418,7 @@
 					"$(PROJECT_DIR)/Libraries/boost_include/**",
 					"$(PROJECT_DIR)/Libraries/libtorrent_include/**",
 				);
+				INFOPLIST_KEY_CFBundleDisplayName = FetchFlow;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_SUAllowsAutomaticUpdates = YES;
 				INFOPLIST_KEY_SUEnableAutomaticChecks = YES;

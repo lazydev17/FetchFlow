@@ -133,7 +133,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
-          name: TorrentClient ${{ steps.version.outputs.tag }}
+          name: FetchFlow ${{ steps.version.outputs.tag }}
           files: |
             releases/TorrentClient-${{ steps.version.outputs.version }}.dmg
             releases/TorrentClient-${{ steps.version.outputs.version }}.dmg.sha256
@@ -143,7 +143,7 @@ jobs:
           body: |
             ## FetchFlow ${{ steps.version.outputs.tag }}
 
-            Download the DMG, open it, and drag **TorrentClient.app** into your Applications folder.
+            Download the DMG, open it, and drag **FetchFlow** into your Applications folder.
             The ZIP is the archive used by Sparkle's in-app updater.
 
             ### Verify your download

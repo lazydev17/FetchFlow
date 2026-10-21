@@ -1,6 +1,6 @@
 # Third-Party Licenses
 
-TorrentClient (FetchFlow) includes the following third-party libraries
+FetchFlow includes the following third-party libraries
 as precompiled static libraries and frameworks in `Libraries/`.
 
 ---

@@ -1,4 +1,4 @@
-# TorrentClient (FetchFlow)
+# FetchFlow
 
 [![License: MIT](https://img.shields.io/github/license/lazydev17/TorrentClient)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/lazydev17/TorrentClient)](https://github.com/lazydev17/TorrentClient/releases/latest)

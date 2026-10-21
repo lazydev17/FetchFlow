@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report a bug in TorrentClient
+description: Report a bug in FetchFlow
 title: "[Bug]: "
 labels: ["bug"]
 body:
@@ -12,7 +12,7 @@ body:
     id: version
     attributes:
       label: App Version
-      description: Which version of TorrentClient are you using?
+      description: Which version of FetchFlow are you using?
       placeholder: "e.g. 1.0.2"
     validations:
       required: true

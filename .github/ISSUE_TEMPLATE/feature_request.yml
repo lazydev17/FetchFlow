@@ -1,12 +1,12 @@
 name: Feature Request
-description: Suggest a new feature or improvement
+description: Suggest a new feature or improvement for FetchFlow
 title: "[Feature]: "
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        Have an idea to make TorrentClient better? We'd love to hear it!
+        Have an idea to make FetchFlow better? We'd love to hear it!
 
   - type: textarea
     id: problem
