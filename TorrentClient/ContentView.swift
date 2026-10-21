@@ -19,13 +19,31 @@ struct ContentView: View {
         .searchable(text: $torrentManager.searchText, placement: .toolbar, prompt: "Search in downloads…")
         .toolbar {
             ToolbarItem(placement: .navigation) {
-                Picker("Filter", selection: $torrentManager.activeFilter) {
-                    ForEach(TorrentFilter.allCases) { filter in
-                        Text(filter.rawValue).tag(filter)
+                Menu {
+                    Picker("Filter", selection: $torrentManager.activeFilter) {
+                        ForEach(TorrentFilter.allCases) { filter in
+                            Text(filter.rawValue).tag(filter)
+                        }
                     }
+                    .pickerStyle(.inline)
+                } label: {
+                    Text("\(Text(Image(nsImage: .filterFunnel)).font(.system(size: 10, weight: .medium)).foregroundStyle(.secondary))  \(Text(torrentManager.activeFilter.rawValue).font(.system(size: 12, weight: .medium)).foregroundStyle(.primary))  \(Text(Image(systemName: "chevron.up.chevron.down")).font(.system(size: 9, weight: .semibold)).foregroundStyle(.secondary))")
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 5)
+                        .background(
+                            Capsule()
+                                .fill(Color(nsColor: .controlBackgroundColor))
+                        )
+                        .overlay(
+                            Capsule()
+                                .strokeBorder(Color(nsColor: .separatorColor), lineWidth: 0.8)
+                        )
+                        .contentShape(Capsule())
                 }
-                .pickerStyle(.menu)
-                .labelsHidden()
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .padding(.horizontal, 4)
+                .fixedSize()
             }
 
             ToolbarItemGroup(placement: .primaryAction) {
@@ -166,4 +184,32 @@ struct ContentView: View {
             return torrentManager.hasActiveTorrents ? "Pause All Downloads" : "Resume All Downloads"
         }
     }
+}
+
+// MARK: - Funnel Filter Icon
+
+private extension NSImage {
+    /// Crisp vector template funnel matching standard filter icon designs
+    static let filterFunnel: NSImage = {
+        let size = NSSize(width: 10.5, height: 10.5)
+        let img = NSImage(size: size, flipped: false) { rect in
+            let path = NSBezierPath()
+            let w = rect.width
+            let h = rect.height
+            // Draw funnel polygon (flipped: false -> y=0 is bottom, y=h is top)
+            path.move(to: NSPoint(x: w * 0.05, y: h * 0.95))
+            path.line(to: NSPoint(x: w * 0.95, y: h * 0.95))
+            path.line(to: NSPoint(x: w * 0.62, y: h * 0.50))
+            path.line(to: NSPoint(x: w * 0.62, y: h * 0.08))
+            path.line(to: NSPoint(x: w * 0.38, y: h * 0.08))
+            path.line(to: NSPoint(x: w * 0.38, y: h * 0.50))
+            path.close()
+            path.lineJoinStyle = .round
+            NSColor.black.setFill()
+            path.fill()
+            return true
+        }
+        img.isTemplate = true
+        return img
+    }()
 }
