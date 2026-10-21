@@ -4,7 +4,16 @@ All notable changes to FetchFlow will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.0.4] - 2026-10-22
+
+### Added
+- Transparent 32-bit RGBA application icon with native macOS squircle drop shadow
+
+### Changed
+- Standardized product branding to FetchFlow across all documentation, menus, and release packages
+- Configured `CFBundleDisplayName` so macOS displays "FetchFlow" in Dock, Menu Bar, and App Switcher
+
+## [1.0.3] - 2026-10-22
 
 ### Fixed
 - Port input no longer attempts privileged ports (< 1024) or partially typed ports; engine settings are debounced.
@@ -49,6 +58,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Sparkle auto-update integration
 - GitHub Actions release pipeline with DMG packaging
 
+[1.0.4]: https://github.com/lazydev17/TorrentClient/releases/tag/v1.0.4
+[1.0.3]: https://github.com/lazydev17/TorrentClient/releases/tag/v1.0.3
 [1.0.2]: https://github.com/lazydev17/TorrentClient/releases/tag/v1.0.2
 [1.0.1]: https://github.com/lazydev17/TorrentClient/releases/tag/v1.0.1
 [1.0.0]: https://github.com/lazydev17/TorrentClient/releases/tag/v1.0.0
