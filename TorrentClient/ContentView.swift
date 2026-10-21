@@ -18,36 +18,14 @@ struct ContentView: View {
         .frame(minWidth: 780, minHeight: 480)
         .searchable(text: $torrentManager.searchText, placement: .toolbar, prompt: "Search in downloads…")
         .toolbar {
-            ToolbarItemGroup(placement: .navigation) {
-                // Filter Dropdown
-                Menu {
+            ToolbarItem(placement: .navigation) {
+                Picker("Filter", selection: $torrentManager.activeFilter) {
                     ForEach(TorrentFilter.allCases) { filter in
-                        Button {
-                            torrentManager.activeFilter = filter
-                        } label: {
-                            HStack {
-                                Text(filter.rawValue)
-                                if torrentManager.activeFilter == filter {
-                                    Spacer()
-                                    Image(systemName: "checkmark")
-                                }
-                            }
-                        }
+                        Text(filter.rawValue).tag(filter)
                     }
-                } label: {
-                    HStack(spacing: 6) {
-                        Text(torrentManager.activeFilter.rawValue)
-                            .font(.system(size: 13, weight: .medium))
-
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .contentShape(Rectangle())
                 }
-                .menuIndicator(.hidden)
+                .pickerStyle(.menu)
+                .labelsHidden()
             }
 
             ToolbarItemGroup(placement: .primaryAction) {
