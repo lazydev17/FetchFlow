@@ -44,4 +44,7 @@ libtorrent-build/
 # Local Release Archives
 releases/
 
+# AI Agent skills & workspace configs
+.agents/
+
 
