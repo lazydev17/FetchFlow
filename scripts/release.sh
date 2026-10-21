@@ -76,6 +76,13 @@ fi
 echo "    App successfully built at: ${APP_DIR}"
 
 # ---------------------------------------------------------------------------
+# Pre-Flight Verification Gate
+# ---------------------------------------------------------------------------
+echo ""
+echo "--> Pre-Flight Gate: Validating application bundle..."
+"${PROJECT_DIR}/scripts/verify-bundle.sh" "$APP_DIR" "$VERSION"
+
+# ---------------------------------------------------------------------------
 # 2. Package DMG (Installer for New Users)
 # ---------------------------------------------------------------------------
 echo ""

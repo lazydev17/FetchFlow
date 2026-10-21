@@ -52,6 +52,13 @@ jobs:
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGN_STYLE="Manual"
 
+      - name: Pre-Flight Bundle Verification
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          APP_PATH="build/DerivedData/Build/Products/Release/TorrentClient.app"
+          chmod +x ./scripts/verify-bundle.sh
+          ./scripts/verify-bundle.sh "$APP_PATH" "$VERSION"
+
       - name: Package Distribution DMG
         run: |
           APP_PATH="build/DerivedData/Build/Products/Release/TorrentClient.app"
