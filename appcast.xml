@@ -4,21 +4,12 @@
         <title>TorrentClient</title>
         <item>
             <title>1.0.1</title>
-            <pubDate>Wed, 21 Oct 2026 16:35:25 +0530</pubDate>
+            <pubDate>Wed, 21 Oct 2026 11:27:11 +0000</pubDate>
             <sparkle:version>2</sparkle:version>
             <sparkle:shortVersionString>1.0.1</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.6</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/satya-sanjay2110/TorrentClient/releases/download/v1.0.1/TorrentClient-1.0.1.zip" length="6556254" type="application/octet-stream" sparkle:edSignature="1cQkTBjKe/Rrf8K9+Y/Bioglkt8qUyh65D73wb0oHxUGbMHZX6PjXNtuLBn7Vqn2K3DAyTq183GbW69t45k0DA=="/>
-        </item>
-        <item>
-            <title>1.0.0</title>
-            <pubDate>Sun, 18 Oct 2026 23:15:32 +0530</pubDate>
-            <sparkle:version>1</sparkle:version>
-            <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>15.6</sparkle:minimumSystemVersion>
-            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/satya-sanjay2110/TorrentClient/releases/download/v1.0.1/TorrentClient-1.0.0.zip" length="4947091" type="application/octet-stream" sparkle:edSignature="ub6iH22vpd+pIDJCZXeca2WcXnbIFZua2dH7k3s7bCQS5JZ/8AhoLD9d8uBExYunb8QsdnMzVfZtwSqVzp7fCg=="/>
+            <enclosure url="https://github.com/satya-sanjay2110/TorrentClient/releases/download/v1.0.1/TorrentClient-1.0.1.zip" length="6550850" type="application/octet-stream" sparkle:edSignature="/LaxVxKQoyqZkXodGxtHjUXuf8g4nY34NTHpEqhomS1RtoA6Ejzd0i2fD9kwjZ5NtCmjfZw8uOQFeUYyS1tSDQ=="/>
         </item>
     </channel>
 </rss>
