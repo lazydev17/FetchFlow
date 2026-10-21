@@ -22,7 +22,7 @@ Designed specifically for macOS with clean aesthetics, secure App Sandboxing, li
 ## Requirements
 
 - **macOS**: 15.0 (Sequoia) or later
-- **Architecture**: Universal (Apple Silicon & Intel)
+- **Architecture**: Apple Silicon (arm64)
 - **Xcode** (for developers): 16.0+
 
 ---

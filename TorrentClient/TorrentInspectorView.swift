@@ -189,8 +189,19 @@ struct InspectorGeneralTab: View {
                 HStack(spacing: 4) {
                     Text("Priority:")
                         .foregroundStyle(.secondary)
-                    Text(torrent.priority.lowercased())
-                        .fontWeight(.medium)
+
+                    Picker("", selection: Binding(
+                        get: { torrent.priorityValue },
+                        set: { torrentManager.setPriority($0, for: torrent.infoHash) }
+                    )) {
+                        ForEach(TorrentPriority.allCases) { priority in
+                            Text(priority.rawValue).tag(priority)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .controlSize(.small)
+                    .fixedSize()
                 }
                 .font(.system(size: 11.5))
 
@@ -546,8 +557,8 @@ struct MediaThumbnailView: View {
                 .stroke(Color.white.opacity(0.12), lineWidth: 1)
         )
         .onAppear { loadThumbnail() }
-        .onChange(of: torrent.savePath) { _ in loadThumbnail() }
-        .onChange(of: torrent.files) { _ in loadThumbnail() }
+        .onChange(of: torrent.savePath) { loadThumbnail() }
+        .onChange(of: torrent.files) { loadThumbnail() }
     }
 
     private var mediaExtension: String {

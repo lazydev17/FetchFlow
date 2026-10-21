@@ -47,8 +47,17 @@ jobs:
             -configuration Release \
             -derivedDataPath build/DerivedData \
             MARKETING_VERSION="$VERSION" \
+            ARCHS="arm64" \
+            ONLY_ACTIVE_ARCH=YES \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGN_STYLE="Manual"
+
+      - name: Package Distribution DMG
+        run: |
+          APP_PATH="build/DerivedData/Build/Products/Release/TorrentClient.app"
+          echo "Building DMG installer..."
+          chmod +x ./scripts/make-dmg.sh
+          ./scripts/make-dmg.sh "$APP_PATH"
 
       - name: Package Distribution Zip
         run: |
@@ -57,7 +66,8 @@ jobs:
           APP_PATH="build/DerivedData/Build/Products/Release/TorrentClient.app"
           ZIP_NAME="TorrentClient-$VERSION.zip"
           echo "Archiving $APP_PATH into releases/$ZIP_NAME..."
-          ditto -c -k --keepParent "$APP_PATH" "releases/$ZIP_NAME"
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "releases/$ZIP_NAME"
+          (cd releases && shasum -a 256 "$ZIP_NAME" > "${ZIP_NAME}.sha256")
           echo "Archive size: $(du -sh "releases/$ZIP_NAME" | awk '{print $1}')"
 
       - name: Generate Sparkle Appcast
@@ -68,23 +78,35 @@ jobs:
           TAG="${{ steps.version.outputs.tag }}"
           DOWNLOAD_PREFIX="https://github.com/${{ github.repository }}/releases/download/$TAG/"
           
+          # Isolate zip archives into a staging folder for Sparkle generate_appcast
+          STAGE_DIR="$(mktemp -d)"
+          for z in releases/*.zip; do [ -f "$z" ] && cp "$z" "$STAGE_DIR/"; done
+          [ -f releases/appcast.xml ] && cp releases/appcast.xml "$STAGE_DIR/"
+          
+          chmod +x ./scripts/bin/generate_appcast
           if [ -n "$SPARKLE_KEY" ]; then
             echo "Signing appcast with SPARKLE_PRIVATE_KEY secret..."
             echo "$SPARKLE_KEY" | ./scripts/bin/generate_appcast \
               --download-url-prefix "$DOWNLOAD_PREFIX" \
               --ed-key-file - \
-              releases/
+              --maximum-versions 0 \
+              --maximum-deltas 0 \
+              "$STAGE_DIR"
           else
             echo "Notice: SPARKLE_PRIVATE_KEY secret not found in repository secrets."
             echo "Skipping cryptographic signing of appcast feed."
             ./scripts/bin/generate_appcast \
               --download-url-prefix "$DOWNLOAD_PREFIX" \
-              releases/ || true
+              --maximum-versions 0 \
+              --maximum-deltas 0 \
+              "$STAGE_DIR" || true
           fi
           
-          if [ -f releases/appcast.xml ]; then
-            cp releases/appcast.xml appcast.xml
+          if [ -f "$STAGE_DIR/appcast.xml" ]; then
+            cp "$STAGE_DIR/appcast.xml" releases/appcast.xml
+            cp "$STAGE_DIR/appcast.xml" appcast.xml
           fi
+          rm -rf "$STAGE_DIR"
 
       - name: Create GitHub Release & Upload Asset
         uses: softprops/action-gh-release@v2
@@ -92,7 +114,10 @@ jobs:
           tag_name: ${{ steps.version.outputs.tag }}
           name: TorrentClient ${{ steps.version.outputs.tag }}
           files: |
+            releases/TorrentClient-${{ steps.version.outputs.version }}.dmg
+            releases/TorrentClient-${{ steps.version.outputs.version }}.dmg.sha256
             releases/TorrentClient-${{ steps.version.outputs.version }}.zip
+            releases/TorrentClient-${{ steps.version.outputs.version }}.zip.sha256
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

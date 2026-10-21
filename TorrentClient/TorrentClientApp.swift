@@ -3,9 +3,13 @@ import AppKit
 
 @main
 struct TorrentClientApp: App {
+    // A single manager/session is shared by every window scene.
+    @StateObject private var torrentManager = TorrentManager()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(torrentManager)
                 .tint(Color.accentColor)
                 .background(WindowConfigurator())
         }

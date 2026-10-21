@@ -1,73 +1,179 @@
 #!/usr/bin/env bash
 #
-# release.sh - Builds, packages, signs, and generates Sparkle appcast for TorrentClient
+# release.sh - Complete local release orchestrator for TorrentClient (FetchFlow).
+#
+# Pipeline:
+#   1. Clean Release build for Apple Silicon (arm64)
+#   2. Package TorrentClient-<version>.dmg with /Applications link & .sha256
+#   3. Package TorrentClient-<version>.zip for Sparkle auto-updates & .sha256
+#   4. Sign and update appcast.xml using vendored Sparkle tools & EdDSA private key
+#   5. Output formatted GitHub Release notes with Gatekeeper instructions & checksums
 #
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-BIN_DIR="$SCRIPT_DIR/bin"
-RELEASES_DIR="$REPO_ROOT/releases"
+PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+APP_NAME="TorrentClient"
 
-export DEVELOPER_DIR="/Applications/Xcode.app/Contents/Developer"
+cd "$PROJECT_DIR"
 
-echo "=== TorrentClient Sparkle Release Builder ==="
+# ---------------------------------------------------------------------------
+# Preconditions
+# ---------------------------------------------------------------------------
+SPARKLE_BIN="${PROJECT_DIR}/scripts/bin/generate_appcast"
+SPARKLE_KEY="${PROJECT_DIR}/.sparkle/sparkle_priv.key"
 
-# 1. Determine version
-VERSION="${1:-1.0.0}"
-echo "Building Release version: $VERSION"
-
-# 2. Build Release configuration
-echo "Compiling Release build with xcodebuild..."
-cd "$REPO_ROOT"
-xcodebuild clean build \
-    -project TorrentClient.xcodeproj \
-    -scheme TorrentClient \
-    -configuration Release \
-    -derivedDataPath "$REPO_ROOT/build/DerivedData" \
-    MARKETING_VERSION="$VERSION" \
-    > /dev/null
-
-APP_PATH="$REPO_ROOT/build/DerivedData/Build/Products/Release/TorrentClient.app"
-if [ ! -d "$APP_PATH" ]; then
-    echo "Error: Release build not found at $APP_PATH"
+if [ ! -x "$SPARKLE_BIN" ]; then
+    echo "ERROR: Sparkle generate_appcast tool not found or not executable at: $SPARKLE_BIN"
     exit 1
 fi
-echo "✓ Release build completed: $APP_PATH"
 
-# 3. Package archive
-mkdir -p "$RELEASES_DIR"
-ZIP_NAME="TorrentClient-$VERSION.zip"
-ZIP_PATH="$RELEASES_DIR/$ZIP_NAME"
-
-echo "Creating distribution zip: $ZIP_NAME..."
-rm -f "$ZIP_PATH"
-# Using ditto preserves macOS resource forks, symlinks, and code signature
-ditto -c -k --keepParent "$APP_PATH" "$ZIP_PATH"
-echo "✓ Distribution zip created ($(du -sh "$ZIP_PATH" | awk '{print $1}'))"
-
-# 4. Sign update and generate appcast.xml
-echo "Generating Sparkle EdDSA signature and appcast feed..."
-"$BIN_DIR/generate_appcast" \
-    --account TorrentClient \
-    --download-url-prefix "https://github.com/satya-sanjay2110/TorrentClient/releases/download/v$VERSION/" \
-    "$RELEASES_DIR"
-
-if [ -f "$RELEASES_DIR/appcast.xml" ]; then
-    cp "$RELEASES_DIR/appcast.xml" "$REPO_ROOT/appcast.xml"
-    if [ -d "$REPO_ROOT/../TorrentClient" ] && [ -f "$REPO_ROOT/../appcast.xml" ]; then
-        cp "$RELEASES_DIR/appcast.xml" "$REPO_ROOT/../appcast.xml"
-    fi
-    echo "✓ appcast.xml updated and signed successfully!"
+if [ ! -f "$SPARKLE_KEY" ]; then
+    echo "ERROR: Sparkle private key not found at: $SPARKLE_KEY"
+    exit 1
 fi
 
+# Determine Version & Build
+VERSION="$(grep -m 1 "MARKETING_VERSION" "${PROJECT_DIR}/${APP_NAME}.xcodeproj/project.pbxproj" | awk -F '=' '{print $2}' | tr -d ' ;')"
+BUILD_NUMBER="$(grep -m 1 "CURRENT_PROJECT_VERSION" "${PROJECT_DIR}/${APP_NAME}.xcodeproj/project.pbxproj" | awk -F '=' '{print $2}' | tr -d ' ;')"
+
+VERSION="${1:-$VERSION}"
+TAG="v${VERSION}"
+
+echo "======================================================================"
+echo " Preparing Release: ${APP_NAME} ${VERSION} (Build ${BUILD_NUMBER}) [${TAG}]"
+echo " Target Architecture: Apple Silicon (arm64)"
+echo "======================================================================"
+
+BUILD_OUTPUT="${PROJECT_DIR}/build/DerivedData"
+APP_DIR="${BUILD_OUTPUT}/Build/Products/Release/${APP_NAME}.app"
+DIST_DIR="${PROJECT_DIR}/releases"
+mkdir -p "$DIST_DIR"
+
+# ---------------------------------------------------------------------------
+# 1. Build Release Scheme
+# ---------------------------------------------------------------------------
 echo ""
-echo "=== Release $VERSION Ready for Distribution! ==="
-echo "Artifact: $ZIP_PATH"
-echo "Feed:     $REPO_ROOT/appcast.xml"
+echo "--> Step 1: Building Release application..."
+
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild clean build \
+    -project "${APP_NAME}.xcodeproj" \
+    -scheme "$APP_NAME" \
+    -configuration Release \
+    -derivedDataPath "$BUILD_OUTPUT" \
+    MARKETING_VERSION="$VERSION" \
+    CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+    ARCHS="arm64" \
+    ONLY_ACTIVE_ARCH=YES \
+    CODE_SIGN_IDENTITY="-" \
+    CODE_SIGN_STYLE="Manual" \
+    -quiet
+
+if [ ! -d "$APP_DIR" ]; then
+    echo "ERROR: Build failed; ${APP_DIR} does not exist."
+    exit 1
+fi
+echo "    App successfully built at: ${APP_DIR}"
+
+# ---------------------------------------------------------------------------
+# 2. Package DMG (Installer for New Users)
+# ---------------------------------------------------------------------------
 echo ""
-echo "Next steps to publish to users across all devices:"
-echo "1. Create GitHub Release:"
-echo "   gh release create v$VERSION \"$ZIP_PATH\" --title \"TorrentClient v$VERSION\" --notes \"Release $VERSION\""
-echo "2. Push updated appcast.xml to GitHub:"
-echo "   git add appcast.xml && git commit -m \"chore: update appcast.xml for v$VERSION\" && git push"
+echo "--> Step 2: Packaging Distribution DMG..."
+"${PROJECT_DIR}/scripts/make-dmg.sh" "$APP_DIR"
+DMG_PATH="${DIST_DIR}/${APP_NAME}-${VERSION}.dmg"
+
+# ---------------------------------------------------------------------------
+# 3. Package ZIP (Sparkle Updater Archive)
+# ---------------------------------------------------------------------------
+echo ""
+echo "--> Step 3: Packaging Sparkle update ZIP archive..."
+ZIP_NAME="${APP_NAME}-${VERSION}.zip"
+ZIP_PATH="${DIST_DIR}/${ZIP_NAME}"
+rm -f "$ZIP_PATH"
+
+ditto -c -k --sequesterRsrc --keepParent "$APP_DIR" "$ZIP_PATH"
+(cd "$DIST_DIR" && shasum -a 256 "$ZIP_NAME" > "${ZIP_NAME}.sha256")
+
+echo "    ZIP successfully packaged: ${ZIP_PATH}"
+echo "    SHA-256: $(cat "${ZIP_PATH}.sha256")"
+
+# ---------------------------------------------------------------------------
+# 4. Generate & Sign Sparkle appcast.xml (Staging Directory)
+# ---------------------------------------------------------------------------
+echo ""
+echo "--> Step 4: Signing and updating Sparkle appcast.xml..."
+DOWNLOAD_URL_PREFIX="https://github.com/satya-sanjay2110/TorrentClient/releases/download/${TAG}/"
+
+# Use dedicated staging directory so generate_appcast only indexes .zip archives
+APPCAST_STAGING="$(mktemp -d -t "sparkle_stage_${APP_NAME}")"
+trap 'rm -rf "$APPCAST_STAGING" 2>/dev/null || true' EXIT
+
+# Copy all release zip archives and existing appcast into staging
+for z in "${DIST_DIR}"/*.zip; do
+    [ -f "$z" ] && cp "$z" "$APPCAST_STAGING/"
+done
+if [ -f "${DIST_DIR}/appcast.xml" ]; then
+    cp "${DIST_DIR}/appcast.xml" "${APPCAST_STAGING}/appcast.xml"
+fi
+
+"$SPARKLE_BIN" \
+    --download-url-prefix "$DOWNLOAD_URL_PREFIX" \
+    --ed-key-file "$SPARKLE_KEY" \
+    --maximum-versions 0 \
+    --maximum-deltas 0 \
+    "$APPCAST_STAGING"
+
+# Sync updated appcast.xml back
+if [ -f "${APPCAST_STAGING}/appcast.xml" ]; then
+    cp "${APPCAST_STAGING}/appcast.xml" "${DIST_DIR}/appcast.xml"
+    cp "${APPCAST_STAGING}/appcast.xml" "${PROJECT_DIR}/appcast.xml" 2>/dev/null || true
+    if [ -f "${PROJECT_DIR}/../appcast.xml" ]; then
+        cp "${APPCAST_STAGING}/appcast.xml" "${PROJECT_DIR}/../appcast.xml" 2>/dev/null || true
+    fi
+    echo "    appcast.xml updated and cryptographically signed with EdDSA."
+fi
+
+# ---------------------------------------------------------------------------
+# Summary & Release Notes
+# ---------------------------------------------------------------------------
+DMG_HASH="$(cat "${DMG_PATH}.sha256" | awk '{print $1}')"
+ZIP_HASH="$(cat "${ZIP_PATH}.sha256" | awk '{print $1}')"
+
+echo ""
+echo "======================================================================"
+echo " RELEASE ARTIFACTS READY:"
+echo "======================================================================"
+echo " DMG:     ${DMG_PATH}"
+echo " ZIP:     ${ZIP_PATH}"
+echo " APPCAST: ${PROJECT_DIR}/appcast.xml"
+echo ""
+echo "----------------------------------------------------------------------"
+echo " SUGGESTED GITHUB RELEASE NOTES:"
+echo "----------------------------------------------------------------------"
+cat <<EOF
+## FetchFlow (TorrentClient) ${TAG}
+
+### What's New
+- Native Apple Silicon (arm64) high-performance BitTorrent engine powered by libtorrent-rasterbar 2.0.11.
+- Modern minimalist application icon and native macOS Sequoia/Tahoe design.
+- In-app automatic updates via Sparkle with cryptographic Ed25519 verification.
+
+### Installation
+Choose your preferred download:
+- **\`${APP_NAME}-${VERSION}.dmg\`**: Drag and drop \`${APP_NAME}.app\` into your Applications folder.
+- **\`${APP_NAME}-${VERSION}.zip\`**: Archive used by the in-app automatic updater.
+
+> **First Launch on macOS (Gatekeeper)**:
+> This application is independently signed with Ed25519 cryptographic verification. On first open, macOS may state that the developer cannot be verified:
+> 1. Open **System Settings → Privacy & Security**.
+> 2. Scroll down to the security section for **${APP_NAME}**.
+> 3. Click **Open Anyway** and confirm. (This is only required once).
+
+### Integrity Checksums (SHA-256)
+\`\`\`
+${DMG_HASH}  ${APP_NAME}-${VERSION}.dmg
+${ZIP_HASH}  ${APP_NAME}-${VERSION}.zip
+\`\`\`
+EOF
+echo "======================================================================"

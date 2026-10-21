@@ -7,7 +7,7 @@ import SwiftUI
 import AppKit
 
 struct ContentView: View {
-    @StateObject private var torrentManager = TorrentManager()
+    @EnvironmentObject private var torrentManager: TorrentManager
     @State private var isPresentingAddSheet = false
     @State private var showingDeleteCheckedConfirmation = false
 
@@ -124,12 +124,33 @@ struct ContentView: View {
         } message: {
             Text("Are you sure you want to remove \(torrentManager.checkedInfoHashes.count) selected download\(torrentManager.checkedInfoHashes.count == 1 ? "" : "s")?")
         }
+        .alert("Download Engine Error", isPresented: Binding(
+            get: { torrentManager.engineError != nil },
+            set: { presented in
+                if !presented { torrentManager.engineError = nil }
+            }
+        )) {
+            Button("OK", role: .cancel) {
+                torrentManager.engineError = nil
+            }
+        } message: {
+            Text(torrentManager.engineError ?? "Unknown engine error")
+        }
         .dropDestination(for: URL.self) { urls, _ in
             var handled = false
             for url in urls {
                 let ext = url.pathExtension.lowercased()
-                if ext == "torrent" {
-                    torrentManager.addTorrentFile(url)
+                if url.isFileURL && ext == "torrent" {
+                    if torrentManager.addTorrentFile(url) == nil {
+                        torrentManager.engineError = torrentManager.lastAddError
+                            ?? "Failed to add torrent file."
+                    }
+                    handled = true
+                } else if url.scheme?.lowercased() == "magnet" {
+                    if torrentManager.addMagnet(url.absoluteString) == nil {
+                        torrentManager.engineError = torrentManager.lastAddError
+                            ?? "Failed to add magnet link."
+                    }
                     handled = true
                 }
             }
@@ -142,7 +163,6 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .openAddTorrentSheet)) { _ in
             isPresentingAddSheet = true
         }
-        .environmentObject(torrentManager)
     }
 
     private var playPauseButtonTitle: String {

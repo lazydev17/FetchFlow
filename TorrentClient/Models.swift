@@ -6,6 +6,7 @@ public enum TorrentState: String, CaseIterable, Codable {
     case checkingFiles = "Checking"
     case downloadingMetadata = "Fetching Metadata"
     case downloading = "Downloading"
+    case queued = "Queued"
     case finished = "Finished"
     case seeding = "Seeding"
     case paused = "Paused"
@@ -16,6 +17,7 @@ public enum TorrentState: String, CaseIterable, Codable {
         case .checkingFiles: return "arrow.triangle.2.circlepath"
         case .downloadingMetadata: return "antenna.radiowaves.left.and.right"
         case .downloading: return "arrow.down.circle.fill"
+        case .queued: return "hourglass"
         case .finished: return "checkmark.circle.fill"
         case .seeding: return "arrow.up.circle.fill"
         case .paused: return "pause.circle.fill"
@@ -27,9 +29,30 @@ public enum TorrentState: String, CaseIterable, Codable {
         switch self {
         case .downloading: return .accentColor
         case .downloadingMetadata, .checkingFiles: return .purple
+        case .queued: return .blue
         case .finished, .seeding: return .green
         case .paused: return .orange
         case .error: return .red
+        }
+    }
+}
+
+// MARK: - Torrent Priority
+
+public enum TorrentPriority: String, CaseIterable, Identifiable, Codable {
+    case high = "High"
+    case normal = "Normal"
+    case low = "Low"
+
+    public var id: String { rawValue }
+
+    /// 0 = front of the download queue, 1 = leave order unchanged,
+    /// 2 = back of the download queue.
+    public var queuePosition: Int32 {
+        switch self {
+        case .high: return 0
+        case .normal: return 1
+        case .low: return 2
         }
     }
 }
@@ -63,6 +86,8 @@ public struct TorrentModel: Identifiable, Hashable {
     public var totalDownloaded: Int64
     public var totalUploaded: Int64
     public var totalSize: Int64
+    public var totalWanted: Int64
+    public var wantedDownloaded: Int64
     public var state: TorrentState
     public var numPeers: Int
     public var numSeeds: Int
@@ -81,6 +106,8 @@ public struct TorrentModel: Identifiable, Hashable {
                 totalDownloaded: Int64 = 0,
                 totalUploaded: Int64 = 0,
                 totalSize: Int64 = 0,
+                totalWanted: Int64 = 0,
+                wantedDownloaded: Int64 = 0,
                 state: TorrentState = .downloading,
                 numPeers: Int = 0,
                 numSeeds: Int = 0,
@@ -98,6 +125,8 @@ public struct TorrentModel: Identifiable, Hashable {
         self.totalDownloaded = totalDownloaded
         self.totalUploaded = totalUploaded
         self.totalSize = totalSize
+        self.totalWanted = totalWanted
+        self.wantedDownloaded = wantedDownloaded
         self.state = state
         self.numPeers = numPeers
         self.numSeeds = numSeeds
@@ -108,6 +137,16 @@ public struct TorrentModel: Identifiable, Hashable {
         self.dateAdded = dateAdded
     }
     
+    /// True when the user action should be "Resume" rather than "Pause".
+    /// Error-paused torrents can be resumed (which also clears the error).
+    public var canResume: Bool {
+        state == .paused || state == .error
+    }
+
+    public var priorityValue: TorrentPriority {
+        TorrentPriority(rawValue: priority) ?? .normal
+    }
+
     public var formattedProgress: String {
         return String(format: "%.1f%%", progress * 100.0)
     }
@@ -138,6 +177,11 @@ public struct TorrentModel: Identifiable, Hashable {
 
     public var magnetURI: String {
         let dn = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name
+        // v2-only info hashes are 64 hex characters and must use the btmh
+        // multihash form, not btih. Hybrid torrents are keyed by their v1 hash.
+        if infoHash.count == 64 {
+            return "magnet:?xt=urn:btmh:1220\(infoHash)&dn=\(dn)"
+        }
         return "magnet:?xt=urn:btih:\(infoHash)&dn=\(dn)"
     }
 
@@ -162,10 +206,16 @@ public struct TorrentModel: Identifiable, Hashable {
     }
     
     public var etaDescription: String {
-        guard state == .downloading, downloadRate > 1024, totalSize > totalDownloaded else {
+        let remainingBytes: Int64
+        if totalWanted > 0 {
+            remainingBytes = max(0, totalWanted - wantedDownloaded)
+        } else {
+            remainingBytes = max(0, totalSize - totalDownloaded)
+        }
+
+        guard state == .downloading, downloadRate > 1024, remainingBytes > 0 else {
             return state.rawValue
         }
-        let remainingBytes = totalSize - totalDownloaded
         let seconds = Double(remainingBytes) / Double(downloadRate)
         if seconds < 60 {
             return String(format: "%ds left", Int(seconds))

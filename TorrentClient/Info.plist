@@ -12,5 +12,7 @@
 	<true/>
 	<key>SUAllowsAutomaticUpdates</key>
 	<true/>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>FetchFlow uses the local network to discover nearby peers and to configure port forwarding for faster downloads.</string>
 </dict>
 </plist>

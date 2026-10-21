@@ -323,6 +323,7 @@ struct GeneralSettingsPane: View {
         panel.allowsMultipleSelection = false
         if panel.runModal() == .OK, let url = panel.url {
             customSavePath = url.path
+            EngineSettings.saveBookmark(for: url, key: EngineSettings.customSavePathBookmarkKey)
         }
     }
 }
@@ -457,6 +458,16 @@ struct NetworkSettingsPane: View {
 // MARK: - About Settings Pane
 
 struct AboutSettingsPane: View {
+    private var appVersion: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+            ?? "1.0"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+        if let build, !build.isEmpty {
+            return "Version \(version) (Build \(build))"
+        }
+        return "Version \(version)"
+    }
+
     var body: some View {
         Form {
             Section {
@@ -469,7 +480,7 @@ struct AboutSettingsPane: View {
                         Text("TorrentClient")
                             .font(.title2.bold())
 
-                        Text("Version 1.0 (FetchFlow Engine)")
+                        Text("\(appVersion) (FetchFlow Engine)")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
 
@@ -487,7 +498,7 @@ struct AboutSettingsPane: View {
                 LabeledContent("Cryptography & SSL", value: "OpenSSL 3.1.2")
                 LabeledContent("Core Frameworks", value: "Boost 1.89.0")
                 LabeledContent("Software Updates", value: "Sparkle 2 (Ed25519 Signed)")
-                LabeledContent("User Interface", value: "SwiftUI + AppKit (macOS 15+)")
+                LabeledContent("User Interface", value: "SwiftUI + AppKit (macOS 15.6+)")
             }
 
             Section("Links") {

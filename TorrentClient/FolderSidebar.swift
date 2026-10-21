@@ -72,7 +72,7 @@ struct FolderSidebar: View {
         let all = Array(torrentManager.torrents.values)
         switch filter {
         case .all: return all.count
-        case .downloading: return all.filter { $0.state == .downloading || $0.state == .downloadingMetadata || $0.state == .checkingFiles }.count
+        case .downloading: return all.filter { $0.state == .downloading || $0.state == .queued || $0.state == .downloadingMetadata || $0.state == .checkingFiles }.count
         case .completed: return all.filter { $0.state == .finished || $0.state == .seeding }.count
         case .paused: return all.filter { $0.state == .paused }.count
         case .active: return all.filter { $0.downloadRate > 0 || $0.uploadRate > 0 }.count

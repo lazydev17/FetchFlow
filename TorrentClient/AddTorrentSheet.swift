@@ -22,9 +22,7 @@ struct AddTorrentSheet: View {
     @State private var errorMessage: String?
 
     init() {
-        let downloads = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first
-            ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Downloads")
-        _saveFolderURL = State(initialValue: downloads)
+        _saveFolderURL = State(initialValue: EngineSettings.defaultSaveDirectory)
     }
 
     var body: some View {
@@ -132,6 +130,7 @@ struct AddTorrentSheet: View {
 
         if panel.runModal() == .OK, let url = panel.url {
             selectedFileURL = url
+            EngineSettings.saveTorrentBookmark(for: url)
             errorMessage = nil
         }
     }
@@ -146,24 +145,29 @@ struct AddTorrentSheet: View {
 
         if panel.runModal() == .OK, let url = panel.url {
             saveFolderURL = url
+            EngineSettings.saveFolderBookmark(for: url)
         }
     }
 
     private func submit() {
+        torrentManager.lastAddError = nil
+
         if inputMode == .magnet {
             let trimmed = magnetLink.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { return }
             if torrentManager.addMagnet(trimmed, saveLocation: saveFolderURL) != nil {
                 dismiss()
             } else {
-                errorMessage = "Failed to add magnet link. Please verify the URL."
+                errorMessage = torrentManager.lastAddError
+                    ?? "Failed to add magnet link. Please verify the URL."
             }
         } else {
             guard let fileURL = selectedFileURL else { return }
             if torrentManager.addTorrentFile(fileURL, saveLocation: saveFolderURL) != nil {
                 dismiss()
             } else {
-                errorMessage = "Failed to parse torrent file."
+                errorMessage = torrentManager.lastAddError
+                    ?? "Failed to parse torrent file."
             }
         }
     }

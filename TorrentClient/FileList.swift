@@ -65,10 +65,23 @@ struct FileList: View {
     }
 
     @ViewBuilder private func contextMenu(for torrent: TorrentModel) -> some View {
-        Button(torrent.state == .paused ? "Resume" : "Pause") {
-            torrent.state == .paused ? torrentManager.resumeTorrent(torrent.infoHash) : torrentManager.pauseTorrent(torrent.infoHash)
+        Button(torrent.canResume ? "Resume" : "Pause") {
+            torrent.canResume ? torrentManager.resumeTorrent(torrent.infoHash) : torrentManager.pauseTorrent(torrent.infoHash)
         }
         Button("Show in Finder") { torrentManager.openInFinder(torrent.infoHash) }
+        Menu("Priority") {
+            ForEach(TorrentPriority.allCases) { priority in
+                Button {
+                    torrentManager.setPriority(priority, for: torrent.infoHash)
+                } label: {
+                    if torrent.priorityValue == priority {
+                        Label(priority.rawValue, systemImage: "checkmark")
+                    } else {
+                        Text(priority.rawValue)
+                    }
+                }
+            }
+        }
         Divider()
         Button("Copy Magnet Link") {
             NSPasteboard.general.clearContents()
@@ -203,11 +216,24 @@ struct TorrentTableRow: View {
 
             // 3-dots Context Menu Button (Vertical without arrow)
             Menu {
-                Button(torrent.state == .paused ? "Resume" : "Pause") {
-                    torrent.state == .paused ? torrentManager.resumeTorrent(torrent.infoHash) : torrentManager.pauseTorrent(torrent.infoHash)
+                Button(torrent.canResume ? "Resume" : "Pause") {
+                    torrent.canResume ? torrentManager.resumeTorrent(torrent.infoHash) : torrentManager.pauseTorrent(torrent.infoHash)
                 }
                 Button("Show in Finder") {
                     torrentManager.openInFinder(torrent.infoHash)
+                }
+                Menu("Priority") {
+                    ForEach(TorrentPriority.allCases) { priority in
+                        Button {
+                            torrentManager.setPriority(priority, for: torrent.infoHash)
+                        } label: {
+                            if torrent.priorityValue == priority {
+                                Label(priority.rawValue, systemImage: "checkmark")
+                            } else {
+                                Text(priority.rawValue)
+                            }
+                        }
+                    }
                 }
                 Divider()
                 Button("Copy Magnet Link") {
@@ -274,6 +300,8 @@ struct ThickStatusProgressBar: View {
             } else {
                 return torrent.formattedProgress
             }
+        case .queued:
+            return "Queued"
         case .paused:
             return "Paused • \(torrent.formattedProgress)"
         case .seeding:
@@ -351,7 +379,7 @@ struct PersistentDropZoneView: View {
                 .font(.system(size: 26, weight: .light))
                 .foregroundStyle(isTargeted ? Color.accentColor : Color.secondary.opacity(0.8))
 
-            Text("Drag-and-drop URL or torrent file")
+            Text("Drag-and-drop a .torrent file or magnet link")
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(isTargeted ? Color.accentColor : Color.secondary)
         }
@@ -384,8 +412,17 @@ struct PersistentDropZoneView: View {
             var handled = false
             for url in urls {
                 let ext = url.pathExtension.lowercased()
-                if ext == "torrent" {
-                    torrentManager.addTorrentFile(url)
+                if url.isFileURL && ext == "torrent" {
+                    if torrentManager.addTorrentFile(url) == nil {
+                        torrentManager.engineError = torrentManager.lastAddError
+                            ?? "Failed to add torrent file."
+                    }
+                    handled = true
+                } else if url.scheme?.lowercased() == "magnet" {
+                    if torrentManager.addMagnet(url.absoluteString) == nil {
+                        torrentManager.engineError = torrentManager.lastAddError
+                            ?? "Failed to add magnet link."
+                    }
                     handled = true
                 }
             }
