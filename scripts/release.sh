@@ -110,7 +110,7 @@ echo "    SHA-256: $(cat "${ZIP_PATH}.sha256")"
 # ---------------------------------------------------------------------------
 echo ""
 echo "--> Step 4: Signing and updating Sparkle appcast.xml..."
-DOWNLOAD_URL_PREFIX="https://github.com/satya-sanjay2110/TorrentClient/releases/download/${TAG}/"
+DOWNLOAD_URL_PREFIX="https://github.com/lazydev17/TorrentClient/releases/download/${TAG}/"
 
 # Use dedicated staging directory so generate_appcast only indexes .zip archives
 APPCAST_STAGING="$(mktemp -d -t "sparkle_stage_${APP_NAME}")"

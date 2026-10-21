@@ -502,7 +502,7 @@ struct AboutSettingsPane: View {
             }
 
             Section("Links") {
-                Link(destination: URL(string: "https://github.com/satya-sanjay2110/TorrentClient")!) {
+                Link(destination: URL(string: "https://github.com/lazydev17/TorrentClient")!) {
                     HStack {
                         Text("GitHub Repository")
                         Spacer()

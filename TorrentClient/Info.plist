@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>SUFeedURL</key>
-	<string>https://raw.githubusercontent.com/satya-sanjay2110/TorrentClient/main/appcast.xml</string>
+	<string>https://raw.githubusercontent.com/lazydev17/TorrentClient/main/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>i1tiylZKTzkeCnQfdTE2MHVUIOz9MQF++zGNcxclcXU=</string>
 	<key>SUEnableInstallerLauncherService</key>
