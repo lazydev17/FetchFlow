@@ -4,8 +4,8 @@
 #
 # Pipeline:
 #   1. Clean Release build for Apple Silicon (arm64)
-#   2. Package TorrentClient-<version>.dmg with /Applications link & .sha256
-#   3. Package TorrentClient-<version>.zip for Sparkle auto-updates & .sha256
+#   2. Package FetchFlow-<version>.dmg with /Applications link & .sha256
+#   3. Package FetchFlow-<version>.zip for Sparkle auto-updates & .sha256
 #   4. Sign and update appcast.xml using vendored Sparkle tools & EdDSA private key
 #   5. Output formatted GitHub Release notes with Gatekeeper instructions & checksums
 #
@@ -13,7 +13,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-APP_NAME="TorrentClient"
+APP_NAME="FetchFlow"
 
 cd "$PROJECT_DIR"
 
@@ -116,7 +116,7 @@ echo "    SHA-256: $(cat "${ZIP_PATH}.sha256")"
 # ---------------------------------------------------------------------------
 echo ""
 echo "--> Step 4: Signing and updating Sparkle appcast.xml..."
-DOWNLOAD_URL_PREFIX="https://github.com/lazydev17/TorrentClient/releases/download/${TAG}/"
+DOWNLOAD_URL_PREFIX="https://github.com/lazydev17/FetchFlow/releases/download/${TAG}/"
 
 # Use dedicated staging directory so generate_appcast only indexes .zip archives
 APPCAST_STAGING="$(mktemp -d -t "sparkle_stage_${APP_NAME}")"

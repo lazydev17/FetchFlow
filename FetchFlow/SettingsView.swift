@@ -1,6 +1,6 @@
 //
 //  SettingsView.swift
-//  TorrentClient
+//  FetchFlow
 //
 //  Root settings view with NavigationSplitView sidebar + detail,
 //  back/forward toolbar navigation, and liquid glass styling.
@@ -512,7 +512,7 @@ struct AboutSettingsPane: View {
             }
 
             Section("Links") {
-                Link(destination: URL(string: "https://github.com/lazydev17/TorrentClient")!) {
+                Link(destination: URL(string: "https://github.com/lazydev17/FetchFlow")!) {
                     HStack {
                         Text("GitHub Repository")
                         Spacer()

@@ -672,7 +672,7 @@ static NSArray<NSDictionary<NSString *, id> *> *extract_files(lt::torrent_handle
         NSString *base = paths.firstObject;
         if (base == nil) base = NSTemporaryDirectory();
         NSString *bundle = [[NSBundle mainBundle] bundleIdentifier];
-        if (bundle == nil || bundle.length == 0) bundle = @"com.ios.TorrentClient";
+        if (bundle == nil || bundle.length == 0) bundle = @"com.ios.FetchFlow";
         support = [base stringByAppendingPathComponent:bundle];
     }
 

@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 @main
-struct TorrentClientApp: App {
+struct FetchFlowApp: App {
     // A single manager/session is shared by every window scene.
     @StateObject private var torrentManager = TorrentManager()
 

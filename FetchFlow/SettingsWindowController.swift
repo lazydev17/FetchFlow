@@ -1,6 +1,6 @@
 //
 //  SettingsWindowController.swift
-//  TorrentClient
+//  FetchFlow
 //
 //  A singleton NSWindowController that creates the settings window with
 //  .fullSizeContentView for liquid glass rendering on macOS.
@@ -57,7 +57,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         window.titlebarAppearsTransparent = false
         window.toolbarStyle = .automatic
         window.isMovableByWindowBackground = true
-        window.setFrameAutosaveName("TorrentClientSettingsWindow")
+        window.setFrameAutosaveName("FetchFlowSettingsWindow")
         window.minSize = NSSize(width: 620, height: 440)
         window.center()
         window.delegate = self

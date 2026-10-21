@@ -12,7 +12,7 @@ If you discover a security vulnerability in FetchFlow, **please do not open a pu
 
 Instead, please report it responsibly by contacting the maintainer directly through:
 
-- **GitHub**: Send a private message via the [Security Advisories](https://github.com/lazydev17/TorrentClient/security/advisories) tab
+- **GitHub**: Send a private message via the [Security Advisories](https://github.com/lazydev17/FetchFlow/security/advisories) tab
 
 ### What to Include
 
@@ -29,7 +29,7 @@ Instead, please report it responsibly by contacting the maintainer directly thro
 
 ## Security Considerations
 
-TorrentClient is a BitTorrent client that communicates over the network. Security-relevant areas include:
+FetchFlow is a BitTorrent client that communicates over the network. Security-relevant areas include:
 
 - **Network communications**: The app uses libtorrent-rasterbar for peer-to-peer connections
 - **File system access**: Downloads are written to the user's Downloads folder via App Sandbox by default, or to a user-selected folder through a security-scoped bookmark

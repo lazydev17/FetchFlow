@@ -21,28 +21,28 @@
 		63329A702EA2F30C00787A5F /* libboost_filesystem.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libboost_filesystem.a; sourceTree = "<group>"; };
 		63329A712EA2F30C00787A5F /* libboost_random.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libboost_random.a; sourceTree = "<group>"; };
 		63329A722EA2F30C00787A5F /* libboost_thread.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libboost_thread.a; sourceTree = "<group>"; };
-		633F5D2C2E846E980057108D /* TorrentClient.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TorrentClient.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		633F5D2C2E846E980057108D /* FetchFlow.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FetchFlow.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		636D7E8D2EAC17CE00AD80FA /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
 		63F100012E846E980057108D /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Sparkle.framework; path = Libraries/Sparkle.framework; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		63F100052E846E980057108D /* Exceptions for "TorrentClient" folder in "TorrentClient" target */ = {
+		63F100052E846E980057108D /* Exceptions for "FetchFlow" folder in "FetchFlow" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = 633F5D2B2E846E980057108D /* TorrentClient */;
+			target = 633F5D2B2E846E980057108D /* FetchFlow */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		633F5D2E2E846E980057108D /* TorrentClient */ = {
+		633F5D2E2E846E980057108D /* FetchFlow */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				63F100052E846E980057108D /* Exceptions for "TorrentClient" folder in "TorrentClient" target */,
+				63F100052E846E980057108D /* Exceptions for "FetchFlow" folder in "FetchFlow" target */,
 			);
-			path = TorrentClient;
+			path = FetchFlow;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -89,7 +89,7 @@
 		633F5D232E846E980057108D = {
 			isa = PBXGroup;
 			children = (
-				633F5D2E2E846E980057108D /* TorrentClient */,
+				633F5D2E2E846E980057108D /* FetchFlow */,
 				63329A6A2EA2F30B00787A5F /* Frameworks */,
 				633F5D2D2E846E980057108D /* Products */,
 			);
@@ -98,7 +98,7 @@
 		633F5D2D2E846E980057108D /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				633F5D2C2E846E980057108D /* TorrentClient.app */,
+				633F5D2C2E846E980057108D /* FetchFlow.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -120,9 +120,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXNativeTarget section */
-		633F5D2B2E846E980057108D /* TorrentClient */ = {
+		633F5D2B2E846E980057108D /* FetchFlow */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 633F5D372E846E990057108D /* Build configuration list for PBXNativeTarget "TorrentClient" */;
+			buildConfigurationList = 633F5D372E846E990057108D /* Build configuration list for PBXNativeTarget "FetchFlow" */;
 			buildPhases = (
 				633F5D282E846E980057108D /* Sources */,
 				633F5D292E846E980057108D /* Frameworks */,
@@ -134,13 +134,13 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				633F5D2E2E846E980057108D /* TorrentClient */,
+				633F5D2E2E846E980057108D /* FetchFlow */,
 			);
-			name = TorrentClient;
+			name = FetchFlow;
 			packageProductDependencies = (
 			);
-			productName = TorrentClient;
-			productReference = 633F5D2C2E846E980057108D /* TorrentClient.app */;
+			productName = FetchFlow;
+			productReference = 633F5D2C2E846E980057108D /* FetchFlow.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -159,7 +159,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 633F5D272E846E980057108D /* Build configuration list for PBXProject "TorrentClient" */;
+			buildConfigurationList = 633F5D272E846E980057108D /* Build configuration list for PBXProject "FetchFlow" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -173,7 +173,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				633F5D2B2E846E980057108D /* TorrentClient */,
+				633F5D2B2E846E980057108D /* FetchFlow */,
 			);
 		};
 /* End PBXProject section */
@@ -329,7 +329,7 @@
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_CXX_STANDARD_LIBRARY_HARDENING = none;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = TorrentClient/TorrentClient.entitlements;
+				CODE_SIGN_ENTITLEMENTS = FetchFlow/FetchFlow.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 4;
@@ -341,7 +341,7 @@
 					"$(PROJECT_DIR)/Libraries",
 				);
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = TorrentClient/Info.plist;
+				INFOPLIST_FILE = FetchFlow/Info.plist;
 				"HEADER_SEARCH_PATHS[arch=*]" = (
 					"$(PROJECT_DIR)/Libraries/openssl_include/**",
 					"$(PROJECT_DIR)/Libraries/boost_include/**",
@@ -352,7 +352,7 @@
 				INFOPLIST_KEY_SUAllowsAutomaticUpdates = YES;
 				INFOPLIST_KEY_SUEnableAutomaticChecks = YES;
 				INFOPLIST_KEY_SUEnableInstallerLauncherService = YES;
-				INFOPLIST_KEY_SUFeedURL = "https://raw.githubusercontent.com/lazydev17/TorrentClient/main/appcast.xml";
+				INFOPLIST_KEY_SUFeedURL = "https://raw.githubusercontent.com/lazydev17/FetchFlow/main/appcast.xml";
 				INFOPLIST_KEY_SUPublicEDKey = "i1tiylZKTzkeCnQfdTE2MHVUIOz9MQF++zGNcxclcXU=";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -376,14 +376,14 @@
 					"-lssl",
 					"-lcrypto",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.ios.TorrentClient;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ios.FetchFlow;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "TorrentClient/TorrentClient-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "FetchFlow/FetchFlow-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
@@ -400,7 +400,7 @@
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_CXX_STANDARD_LIBRARY_HARDENING = none;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = TorrentClient/TorrentClient.entitlements;
+				CODE_SIGN_ENTITLEMENTS = FetchFlow/FetchFlow.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 4;
@@ -412,7 +412,7 @@
 					"$(PROJECT_DIR)/Libraries",
 				);
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = TorrentClient/Info.plist;
+				INFOPLIST_FILE = FetchFlow/Info.plist;
 				"HEADER_SEARCH_PATHS[arch=*]" = (
 					"$(PROJECT_DIR)/Libraries/openssl_include/**",
 					"$(PROJECT_DIR)/Libraries/boost_include/**",
@@ -423,7 +423,7 @@
 				INFOPLIST_KEY_SUAllowsAutomaticUpdates = YES;
 				INFOPLIST_KEY_SUEnableAutomaticChecks = YES;
 				INFOPLIST_KEY_SUEnableInstallerLauncherService = YES;
-				INFOPLIST_KEY_SUFeedURL = "https://raw.githubusercontent.com/lazydev17/TorrentClient/main/appcast.xml";
+				INFOPLIST_KEY_SUFeedURL = "https://raw.githubusercontent.com/lazydev17/FetchFlow/main/appcast.xml";
 				INFOPLIST_KEY_SUPublicEDKey = "i1tiylZKTzkeCnQfdTE2MHVUIOz9MQF++zGNcxclcXU=";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -446,14 +446,14 @@
 					"-lssl",
 					"-lcrypto",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.ios.TorrentClient;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ios.FetchFlow;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "TorrentClient/TorrentClient-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "FetchFlow/FetchFlow-Bridging-Header.h";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -462,7 +462,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		633F5D272E846E980057108D /* Build configuration list for PBXProject "TorrentClient" */ = {
+		633F5D272E846E980057108D /* Build configuration list for PBXProject "FetchFlow" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				633F5D352E846E990057108D /* Debug */,
@@ -471,7 +471,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		633F5D372E846E990057108D /* Build configuration list for PBXNativeTarget "TorrentClient" */ = {
+		633F5D372E846E990057108D /* Build configuration list for PBXNativeTarget "FetchFlow" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				633F5D382E846E990057108D /* Debug */,

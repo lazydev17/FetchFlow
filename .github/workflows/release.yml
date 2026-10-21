@@ -49,8 +49,8 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           echo "Building Release version $VERSION..."
           xcodebuild clean build \
-            -project TorrentClient.xcodeproj \
-            -scheme TorrentClient \
+            -project FetchFlow.xcodeproj \
+            -scheme FetchFlow \
             -configuration Release \
             -derivedDataPath build/DerivedData \
             MARKETING_VERSION="$VERSION" \
@@ -63,13 +63,13 @@ jobs:
       - name: Pre-Flight Bundle Verification
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          APP_PATH="build/DerivedData/Build/Products/Release/TorrentClient.app"
+          APP_PATH="build/DerivedData/Build/Products/Release/FetchFlow.app"
           chmod +x ./scripts/verify-bundle.sh
           ./scripts/verify-bundle.sh "$APP_PATH" "$VERSION"
 
       - name: Package Distribution DMG
         run: |
-          APP_PATH="build/DerivedData/Build/Products/Release/TorrentClient.app"
+          APP_PATH="build/DerivedData/Build/Products/Release/FetchFlow.app"
           echo "Building DMG installer..."
           chmod +x ./scripts/make-dmg.sh
           ./scripts/make-dmg.sh "$APP_PATH"
@@ -78,8 +78,8 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           mkdir -p releases
-          APP_PATH="build/DerivedData/Build/Products/Release/TorrentClient.app"
-          ZIP_NAME="TorrentClient-$VERSION.zip"
+          APP_PATH="build/DerivedData/Build/Products/Release/FetchFlow.app"
+          ZIP_NAME="FetchFlow-$VERSION.zip"
           echo "Archiving $APP_PATH into releases/$ZIP_NAME..."
           ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "releases/$ZIP_NAME"
           (cd releases && shasum -a 256 "$ZIP_NAME" > "${ZIP_NAME}.sha256")
@@ -98,7 +98,7 @@ jobs:
           # (releases/ is gitignored), so this also avoids indexing stale
           # archives with the current tag's download URL.
           STAGE_DIR="$(mktemp -d)"
-          cp "releases/TorrentClient-${VERSION}.zip" "$STAGE_DIR/"
+          cp "releases/FetchFlow-${VERSION}.zip" "$STAGE_DIR/"
 
           # Base the new feed on the latest main appcast, not the tag checkout.
           # This avoids losing entries published after the tag and avoids a
@@ -135,10 +135,10 @@ jobs:
           tag_name: ${{ steps.version.outputs.tag }}
           name: FetchFlow ${{ steps.version.outputs.tag }}
           files: |
-            releases/TorrentClient-${{ steps.version.outputs.version }}.dmg
-            releases/TorrentClient-${{ steps.version.outputs.version }}.dmg.sha256
-            releases/TorrentClient-${{ steps.version.outputs.version }}.zip
-            releases/TorrentClient-${{ steps.version.outputs.version }}.zip.sha256
+            releases/FetchFlow-${{ steps.version.outputs.version }}.dmg
+            releases/FetchFlow-${{ steps.version.outputs.version }}.dmg.sha256
+            releases/FetchFlow-${{ steps.version.outputs.version }}.zip
+            releases/FetchFlow-${{ steps.version.outputs.version }}.zip.sha256
           generate_release_notes: false
           body: |
             ## FetchFlow ${{ steps.version.outputs.tag }}
@@ -149,14 +149,14 @@ jobs:
             ### Verify your download
             Attach the provided `.sha256` files to verify integrity:
             ```bash
-            shasum -a 256 -c TorrentClient-${{ steps.version.outputs.version }}.dmg.sha256
-            shasum -a 256 -c TorrentClient-${{ steps.version.outputs.version }}.zip.sha256
+            shasum -a 256 -c FetchFlow-${{ steps.version.outputs.version }}.dmg.sha256
+            shasum -a 256 -c FetchFlow-${{ steps.version.outputs.version }}.zip.sha256
             ```
 
             ### First launch on macOS
             This open-source build is **not notarized by Apple**, so macOS Gatekeeper may block the
             first launch. If that happens, open **System Settings → Privacy & Security**, find the
-            TorrentClient notice, and choose **Open Anyway**, then confirm. This is only required once.
+            FetchFlow notice, and choose **Open Anyway**, then confirm. This is only required once.
 
             See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)
             for the full list of changes.

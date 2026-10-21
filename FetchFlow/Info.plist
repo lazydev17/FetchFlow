@@ -5,7 +5,7 @@
 	<key>CFBundleDisplayName</key>
 	<string>FetchFlow</string>
 	<key>SUFeedURL</key>
-	<string>https://raw.githubusercontent.com/lazydev17/TorrentClient/main/appcast.xml</string>
+	<string>https://raw.githubusercontent.com/lazydev17/FetchFlow/main/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>i1tiylZKTzkeCnQfdTE2MHVUIOz9MQF++zGNcxclcXU=</string>
 	<key>SUEnableInstallerLauncherService</key>

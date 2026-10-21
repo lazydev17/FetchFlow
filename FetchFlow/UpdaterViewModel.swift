@@ -1,6 +1,6 @@
 //
 //  UpdaterViewModel.swift
-//  TorrentClient
+//  FetchFlow
 //
 //  Manages Sparkle 2 automatic updates and user-initiated checks.
 //

@@ -14,16 +14,16 @@ Thank you for your interest in contributing! This guide will help you get starte
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/lazydev17/TorrentClient.git
-   cd TorrentClient
+   git clone https://github.com/lazydev17/FetchFlow.git
+   cd FetchFlow
    ```
 
 2. Open in Xcode:
    ```bash
-   open TorrentClient.xcodeproj
+   open FetchFlow.xcodeproj
    ```
 
-3. Select the **TorrentClient** scheme and press **⌘R** to build and run.
+3. Select the **FetchFlow** scheme and press **⌘R** to build and run.
 
 All dependencies (libtorrent, Boost, OpenSSL, Sparkle) are vendored in `Libraries/` — no Homebrew or external package managers needed.
 
@@ -31,8 +31,8 @@ All dependencies (libtorrent, Boost, OpenSSL, Sparkle) are vendored in `Librarie
 
 ```bash
 xcodebuild \
-  -project TorrentClient.xcodeproj \
-  -scheme TorrentClient \
+  -project FetchFlow.xcodeproj \
+  -scheme FetchFlow \
   -configuration Debug \
   -destination 'platform=macOS' \
   build
@@ -42,13 +42,13 @@ xcodebuild \
 
 ### Reporting Bugs
 
-- Use [GitHub Issues](https://github.com/lazydev17/TorrentClient/issues) with the **Bug Report** template
+- Use [GitHub Issues](https://github.com/lazydev17/FetchFlow/issues) with the **Bug Report** template
 - Include your macOS version, app version, and steps to reproduce
 - Attach Console.app logs if relevant
 
 ### Suggesting Features
 
-- Open a [Feature Request](https://github.com/lazydev17/TorrentClient/issues) issue
+- Open a [Feature Request](https://github.com/lazydev17/FetchFlow/issues) issue
 - Describe the problem you're trying to solve, not just the solution
 
 ### Pull Requests
@@ -76,9 +76,9 @@ xcodebuild \
 ## Project Structure
 
 ```
-TorrentClient/
+FetchFlow/
 ├── Libraries/               # Vendored C++ dependencies (do not modify)
-├── TorrentClient/           # Application source code
+├── FetchFlow/           # Application source code
 │   ├── *App.swift           # App lifecycle
 │   ├── *View.swift          # SwiftUI views
 │   ├── Models.swift         # Data models

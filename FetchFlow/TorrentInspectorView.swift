@@ -1,6 +1,6 @@
 //
 //  TorrentInspectorView.swift
-//  TorrentClient
+//  FetchFlow
 //
 //  Bottom inspector pane matching Free Download Manager (FDM) layout:
 //  Media thumbnail preview, GENERAL / PROGRESS / FILES / CONNECTIONS tabs,

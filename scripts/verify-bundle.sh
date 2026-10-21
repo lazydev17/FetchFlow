@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# verify-bundle.sh - Pre-flight verification gate for TorrentClient.app
+# verify-bundle.sh - Pre-flight verification gate for FetchFlow.app
 #
 # Inspects an assembled .app bundle before packaging to guarantee:
 #   1. Bundle layout and Info.plist structure
@@ -18,12 +18,12 @@ set -euo pipefail
 APP_PATH="${1:-}"
 
 if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
-    echo "Usage: $0 <path-to-TorrentClient.app> [expected-version]"
+    echo "Usage: $0 <path-to-FetchFlow.app> [expected-version]"
     exit 2
 fi
 
 EXPECTED_VERSION="${2:-}"
-APP_NAME="TorrentClient"
+APP_NAME="FetchFlow"
 MACOS_DIR="${APP_PATH}/Contents/MacOS"
 APP_BIN="${MACOS_DIR}/${APP_NAME}"
 INFO_PLIST="${APP_PATH}/Contents/Info.plist"

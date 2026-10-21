@@ -9,7 +9,7 @@
             <sparkle:shortVersionString>1.0.4</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.6</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/lazydev17/TorrentClient/releases/download/v1.0.4/TorrentClient-1.0.4.zip" length="5788261" type="application/octet-stream" sparkle:edSignature="OtkiOdtTRMDXIsRz+Ge2CcJ9SFgCfb7KQLKI2ui8D9Oz0lJam7OSlHGV2CV2gvxr71ENZSoOSajNJWMFsVudDw=="/>
+            <enclosure url="https://github.com/lazydev17/FetchFlow/releases/download/v1.0.4/TorrentClient-1.0.4.zip" length="5788261" type="application/octet-stream" sparkle:edSignature="OtkiOdtTRMDXIsRz+Ge2CcJ9SFgCfb7KQLKI2ui8D9Oz0lJam7OSlHGV2CV2gvxr71ENZSoOSajNJWMFsVudDw=="/>
         </item>
         <item>
             <title>1.0.3</title>
@@ -18,7 +18,7 @@
             <sparkle:shortVersionString>1.0.3</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.6</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/lazydev17/TorrentClient/releases/download/v1.0.3/TorrentClient-1.0.3.zip" length="6489999" type="application/octet-stream" sparkle:edSignature="4PYE5EGG4jtQF0rV+utM2ktxam7uNMMmMh22xjbv/U6Jl8WQmWoCaHfY23NZrKIkYYiOc8K4hQq+h50kO2GaAA=="/>
+            <enclosure url="https://github.com/lazydev17/FetchFlow/releases/download/v1.0.3/TorrentClient-1.0.3.zip" length="6489999" type="application/octet-stream" sparkle:edSignature="4PYE5EGG4jtQF0rV+utM2ktxam7uNMMmMh22xjbv/U6Jl8WQmWoCaHfY23NZrKIkYYiOc8K4hQq+h50kO2GaAA=="/>
         </item>
         <item>
             <title>1.0.2</title>
@@ -27,7 +27,7 @@
             <sparkle:shortVersionString>1.0.2</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.6</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <enclosure url="https://github.com/lazydev17/TorrentClient/releases/download/v1.0.2/TorrentClient-1.0.2.zip" length="6486607" type="application/octet-stream" sparkle:edSignature="N6AyCxwe7FScs0/j9gja3L38ItbpkcR6SUr/JIUH+lk3GdOjC1Tb9h+VL6XSNw9ZN5/N3yNe8G0h2R+7gj4bCQ=="/>
+            <enclosure url="https://github.com/lazydev17/FetchFlow/releases/download/v1.0.2/TorrentClient-1.0.2.zip" length="6486607" type="application/octet-stream" sparkle:edSignature="N6AyCxwe7FScs0/j9gja3L38ItbpkcR6SUr/JIUH+lk3GdOjC1Tb9h+VL6XSNw9ZN5/N3yNe8G0h2R+7gj4bCQ=="/>
         </item>
     </channel>
 </rss>

@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 #
-# make-dmg.sh - Creates a macOS distribution disk image (DMG) for TorrentClient.
+# make-dmg.sh - Creates a macOS distribution disk image (DMG) for FetchFlow.
 #
-# Packages TorrentClient.app into a compressed, read-only DMG with an /Applications
+# Packages FetchFlow.app into a compressed, read-only DMG with an /Applications
 # shortcut link and generates a SHA-256 checksum file.
 #
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-APP_NAME="TorrentClient"
+APP_NAME="FetchFlow"
 VOL_NAME="FetchFlow"
 
 # Input .app path (default: release build from DerivedData or argument)

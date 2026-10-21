@@ -17,8 +17,8 @@ jobs:
       - name: Build
         run: |
           xcodebuild clean build \
-            -project TorrentClient.xcodeproj \
-            -scheme TorrentClient \
+            -project FetchFlow.xcodeproj \
+            -scheme FetchFlow \
             -configuration Debug \
             -destination 'platform=macOS' \
             ARCHS="arm64" \
