@@ -4,6 +4,18 @@ All notable changes to TorrentClient (FetchFlow) will be documented in this file
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+- Port input no longer attempts privileged ports (< 1024) or partially typed ports; engine settings are debounced.
+- Torrents with every file deselected now display **No Files Selected** / 0% instead of a completed download.
+- Release builds derive a monotonic build number from the marketing version.
+- Release workflow refuses to publish an unsigned appcast when `SPARKLE_PRIVATE_KEY` is missing.
+
+### Changed
+- Bandwidth settings explain that limits are session-wide targets and local-network peers are exempt by default.
+- Local release staging only indexes the archive being released.
+
 ## [1.0.2] - 2026-10-21
 
 ### Added

@@ -20,7 +20,7 @@ Designed specifically for macOS with clean aesthetics, secure App Sandboxing, li
 - **Magnet & `.torrent` Support**: Quickly add downloads by pasting magnet links or selecting `.torrent` files.
 - **Selective File Downloading**: View the full file hierarchy inside any torrent and toggle individual files to prioritize bandwidth and storage.
 - **Real-Time Transfer Metrics**: Live download/upload speed gauges, progress percentages, ETA calculations, and seed/peer counts.
-- **Category Filters**: Filter downloads by status (*All Downloads*, *Downloading*, *Completed*, *Paused*, *Active*) with live badge counters.
+- **Category Filters**: Filter downloads by status (*All*, *Downloading*, *Completed*, *Paused*, *Active*) from the toolbar.
 - **Torrent Controls**: Pause, resume, and remove torrents with confirmation dialogs (optional deletion of downloaded files).
 - **Finder Integration**: One-click reveal of completed files in macOS Finder (`NSWorkspace`).
 - **Secure Sandboxing**: Hardened macOS App Sandbox configured strictly with required entitlements (Network client/server and Downloads folder).

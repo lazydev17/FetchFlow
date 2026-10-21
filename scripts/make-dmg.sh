@@ -47,6 +47,13 @@ ditto "$APP_PATH" "${STAGE_DIR}/${APP_NAME}.app"
 # Create /Applications shortcut
 ln -s /Applications "${STAGE_DIR}/Applications"
 
+# Include open-source license notices in the distributed disk image.
+for doc in LICENSE THIRD_PARTY_LICENSES README.md; do
+    if [ -f "${PROJECT_DIR}/${doc}" ]; then
+        cp "${PROJECT_DIR}/${doc}" "${STAGE_DIR}/${doc}"
+    fi
+done
+
 # Set volume icon if AppIcon.icns exists
 ICON_SRC="${PROJECT_DIR}/Resources/AppIcon.icns"
 if [ -f "$ICON_SRC" ]; then

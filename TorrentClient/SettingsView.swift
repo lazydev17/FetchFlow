@@ -381,10 +381,14 @@ struct BandwidthSettingsPane: View {
                 }
             }
 
-            Section("Queue Limits") {
+            Section {
                 Stepper(value: $maxActiveTorrents, in: 1...20) {
                     LabeledContent("Max Active Downloads", value: "\(maxActiveTorrents)")
                 }
+            } footer: {
+                Text("Rate limits are session-wide targets. libtorrent may briefly exceed them, and peers on the local network are exempt by default.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
@@ -445,6 +449,12 @@ struct NetworkSettingsPane: View {
                         TextField("Port", value: $customPort, format: .number)
                             .frame(width: 80)
                             .textFieldStyle(.roundedBorder)
+                    }
+
+                    if customPort < 1024 || customPort > 65535 {
+                        Text("Ports must be between 1024 and 65535. 6881 is used until this is corrected.")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
                     }
                 }
             }

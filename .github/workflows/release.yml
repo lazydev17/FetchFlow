@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to release (e.g. v1.0.1)'
+        description: 'Tag to release (e.g. v1.0.2)'
         required: true
-        default: 'v1.0.1'
+        default: 'v1.0.2'
 
 permissions:
   contents: write
@@ -33,9 +33,16 @@ jobs:
             RAW_TAG="${GITHUB_REF#refs/tags/}"
           fi
           VERSION="${RAW_TAG#v}"
+          VERSION="${VERSION#v}"
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          PATCH="${PATCH%%-*}"
+          BUILD_NUMBER=$((10#${MAJOR:-0} * 10000 + 10#${MINOR:-0} * 100 + 10#${PATCH:-0}))
+
           echo "tag=$RAW_TAG" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Target tag: $RAW_TAG, version: $VERSION"
+          echo "build=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+          echo "Target tag: $RAW_TAG, version: $VERSION, build: $BUILD_NUMBER"
 
       - name: Build Release App
         run: |
@@ -47,6 +54,7 @@ jobs:
             -configuration Release \
             -derivedDataPath build/DerivedData \
             MARKETING_VERSION="$VERSION" \
+            CURRENT_PROJECT_VERSION="${{ steps.version.outputs.build }}" \
             ARCHS="arm64" \
             ONLY_ACTIVE_ARCH=YES \
             CODE_SIGN_IDENTITY="-" \
@@ -85,33 +93,39 @@ jobs:
           TAG="${{ steps.version.outputs.tag }}"
           DOWNLOAD_PREFIX="https://github.com/${{ github.repository }}/releases/download/$TAG/"
           
-          # Isolate zip archives into a staging folder for Sparkle generate_appcast
+          # Isolate only the newly built archive and the existing feed for
+          # Sparkle generate_appcast. Old zips are not in the checkout
+          # (releases/ is gitignored), so this also avoids indexing stale
+          # archives with the current tag's download URL.
           STAGE_DIR="$(mktemp -d)"
-          for z in releases/*.zip; do [ -f "$z" ] && cp "$z" "$STAGE_DIR/"; done
-          [ -f releases/appcast.xml ] && cp releases/appcast.xml "$STAGE_DIR/"
-          
-          chmod +x ./scripts/bin/generate_appcast
-          if [ -n "$SPARKLE_KEY" ]; then
-            echo "Signing appcast with SPARKLE_PRIVATE_KEY secret..."
-            echo "$SPARKLE_KEY" | ./scripts/bin/generate_appcast \
-              --download-url-prefix "$DOWNLOAD_PREFIX" \
-              --ed-key-file - \
-              --maximum-versions 0 \
-              --maximum-deltas 0 \
-              "$STAGE_DIR"
-          else
-            echo "Notice: SPARKLE_PRIVATE_KEY secret not found in repository secrets."
-            echo "Skipping cryptographic signing of appcast feed."
-            ./scripts/bin/generate_appcast \
-              --download-url-prefix "$DOWNLOAD_PREFIX" \
-              --maximum-versions 0 \
-              --maximum-deltas 0 \
-              "$STAGE_DIR" || true
+          cp "releases/TorrentClient-${VERSION}.zip" "$STAGE_DIR/"
+
+          # Base the new feed on the latest main appcast, not the tag checkout.
+          # This avoids losing entries published after the tag and avoids a
+          # dirty appcast.xml blocking the later checkout of main.
+          git fetch origin main
+          if git show origin/main:appcast.xml > "$STAGE_DIR/appcast.xml" 2>/dev/null; then
+            echo "Using appcast.xml from origin/main."
+          elif [ -f appcast.xml ]; then
+            cp appcast.xml "$STAGE_DIR/appcast.xml"
           fi
+
+          if [ -z "$SPARKLE_KEY" ]; then
+            echo "::error::SPARKLE_PRIVATE_KEY is not configured; refusing to publish an unsigned appcast."
+            exit 1
+          fi
+
+          chmod +x ./scripts/bin/generate_appcast
+          echo "Signing appcast with SPARKLE_PRIVATE_KEY secret..."
+          printf '%s' "$SPARKLE_KEY" | ./scripts/bin/generate_appcast \
+            --download-url-prefix "$DOWNLOAD_PREFIX" \
+            --ed-key-file - \
+            --maximum-versions 0 \
+            --maximum-deltas 0 \
+            "$STAGE_DIR"
           
           if [ -f "$STAGE_DIR/appcast.xml" ]; then
             cp "$STAGE_DIR/appcast.xml" releases/appcast.xml
-            cp "$STAGE_DIR/appcast.xml" appcast.xml
           fi
           rm -rf "$STAGE_DIR"
 
@@ -125,7 +139,27 @@ jobs:
             releases/TorrentClient-${{ steps.version.outputs.version }}.dmg.sha256
             releases/TorrentClient-${{ steps.version.outputs.version }}.zip
             releases/TorrentClient-${{ steps.version.outputs.version }}.zip.sha256
-          generate_release_notes: true
+          generate_release_notes: false
+          body: |
+            ## FetchFlow ${{ steps.version.outputs.tag }}
+
+            Download the DMG, open it, and drag **TorrentClient.app** into your Applications folder.
+            The ZIP is the archive used by Sparkle's in-app updater.
+
+            ### Verify your download
+            Attach the provided `.sha256` files to verify integrity:
+            ```bash
+            shasum -a 256 -c TorrentClient-${{ steps.version.outputs.version }}.dmg.sha256
+            shasum -a 256 -c TorrentClient-${{ steps.version.outputs.version }}.zip.sha256
+            ```
+
+            ### First launch on macOS
+            This open-source build is **not notarized by Apple**, so macOS Gatekeeper may block the
+            first launch. If that happens, open **System Settings → Privacy & Security**, find the
+            TorrentClient notice, and choose **Open Anyway**, then confirm. This is only required once.
+
+            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)
+            for the full list of changes.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -134,7 +168,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git fetch origin main
-          git checkout main
+          git checkout -B main origin/main
+          cp releases/appcast.xml appcast.xml
           if ! git diff --quiet appcast.xml; then
             git add appcast.xml
             git commit -m "chore: update appcast.xml for ${{ steps.version.outputs.tag }} [skip ci]"

@@ -302,6 +302,8 @@ struct ThickStatusProgressBar: View {
             }
         case .queued:
             return "Queued"
+        case .skipped:
+            return "No files selected"
         case .paused:
             return "Paused • \(torrent.formattedProgress)"
         case .seeding:
@@ -321,7 +323,7 @@ struct ThickStatusProgressBar: View {
 
     var body: some View {
         GeometryReader { geo in
-            let fillWidth = max(0, min(geo.size.width * CGFloat(torrent.progress), geo.size.width))
+            let fillWidth = max(0, min(geo.size.width * CGFloat(torrent.displayProgress), geo.size.width))
 
             ZStack(alignment: .leading) {
                 // Background track

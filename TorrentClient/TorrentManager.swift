@@ -35,6 +35,7 @@ public class TorrentManager: ObservableObject {
     private let persistenceKey = "SavedTorrentsRecords_v1"
 
     private var settingsObserver: NSObjectProtocol?
+    private var settingsApplyWorkItem: DispatchWorkItem?
     private var fileProgressTimer: Timer?
     private var lastEngineSettingsSignature: String?
     private var isShuttingDown = false
@@ -58,6 +59,7 @@ public class TorrentManager: ObservableObject {
             name: NSApplication.willTerminateNotification,
             object: nil
         )
+        settingsApplyWorkItem?.cancel()
         fileProgressTimer?.invalidate()
         wrapper.stopAll()
     }
@@ -71,7 +73,7 @@ public class TorrentManager: ObservableObject {
             queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated {
-                self?.applyEngineSettings()
+                self?.scheduleEngineSettingsApply()
             }
         }
 
@@ -85,6 +87,21 @@ public class TorrentManager: ObservableObject {
 
     @objc private func applicationWillTerminate() {
         shutdown()
+    }
+
+    /// UserDefaults posts on every keystroke/slider tick. Debounce briefly so
+    /// a partially typed port (e.g. "688" on the way to "6881") or a slider
+    /// mid-drag is never applied to the live session.
+    private func scheduleEngineSettingsApply() {
+        settingsApplyWorkItem?.cancel()
+
+        let work = DispatchWorkItem { [weak self] in
+            MainActor.assumeIsolated {
+                self?.applyEngineSettings()
+            }
+        }
+        settingsApplyWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6, execute: work)
     }
 
     private func applyEngineSettings() {
@@ -151,7 +168,13 @@ public class TorrentManager: ObservableObject {
                     item.numPeers = Int(peers)
                     item.numSeeds = Int(seeds)
 
-                    if engineState == .paused, let existing = item.error, !existing.isEmpty {
+                    if item.isFullySkipped {
+                        // libtorrent considers a torrent with no wanted files
+                        // "finished". Present it as skipped instead.
+                        item.state = .skipped
+                        item.downloadRate = 0
+                        item.error = nil
+                    } else if engineState == .paused, let existing = item.error, !existing.isEmpty {
                         // A paused torrent with an error code is an error state;
                         // keep the message visible instead of showing a bare "Paused".
                         item.state = .error
@@ -219,6 +242,12 @@ public class TorrentManager: ObservableObject {
                         item.totalSize = totalSize
                     }
                     item.files = fileItems
+                    if !fileItems.isEmpty && fileItems.allSatisfy({ !$0.isIncluded }) {
+                        item.state = .skipped
+                        item.downloadRate = 0
+                    } else if item.state == .skipped {
+                        item.state = .downloading
+                    }
                     self.torrents[key] = item
                 }
             }
@@ -443,7 +472,7 @@ public class TorrentManager: ObservableObject {
     }
 
     public var hasActiveTorrents: Bool {
-        torrents.values.contains { $0.state != .paused && $0.state != .finished && $0.state != .error }
+        torrents.values.contains { $0.state != .paused && $0.state != .finished && $0.state != .error && $0.state != .skipped }
     }
 
     public var hasCheckedTorrents: Bool {
@@ -455,7 +484,7 @@ public class TorrentManager: ObservableObject {
     }
 
     public var hasActiveCheckedTorrents: Bool {
-        checkedTorrents.contains { $0.state != .paused && $0.state != .finished && $0.state != .error }
+        checkedTorrents.contains { $0.state != .paused && $0.state != .finished && $0.state != .error && $0.state != .skipped }
     }
 
     public func toggleCheck(_ infoHash: String) {
@@ -520,6 +549,13 @@ public class TorrentManager: ObservableObject {
         let current = item.files[fileIndex].isIncluded
         let newIncluded = !current
         item.files[fileIndex].isIncluded = newIncluded
+
+        if item.files.allSatisfy({ !$0.isIncluded }) {
+            item.state = .skipped
+            item.downloadRate = 0
+        } else if item.state == .skipped {
+            item.state = .downloading
+        }
         torrents[infoHash] = item
 
         // 0 = don't download, 4 = default priority in libtorrent
@@ -529,11 +565,19 @@ public class TorrentManager: ObservableObject {
     }
 
     public func setAllFilesIncluded(infoHash: String, included: Bool) {
-        guard var item = torrents[infoHash] else { return }
+        guard var item = torrents[infoHash], !item.files.isEmpty else { return }
         let priority = included ? 4 : 0
         for i in 0..<item.files.count {
             item.files[i].isIncluded = included
             wrapper.setFilePriority(Int32(i), priority: Int32(priority), infoHash: infoHash)
+        }
+        if included {
+            if item.state == .skipped {
+                item.state = .downloading
+            }
+        } else {
+            item.state = .skipped
+            item.downloadRate = 0
         }
         torrents[infoHash] = item
         wrapper.saveResumeData(forTorrent: infoHash)

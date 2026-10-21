@@ -34,11 +34,17 @@ if [ ! -f "$SPARKLE_KEY" ]; then
 fi
 
 # Determine Version & Build
-VERSION="$(grep -m 1 "MARKETING_VERSION" "${PROJECT_DIR}/${APP_NAME}.xcodeproj/project.pbxproj" | awk -F '=' '{print $2}' | tr -d ' ;')"
-BUILD_NUMBER="$(grep -m 1 "CURRENT_PROJECT_VERSION" "${PROJECT_DIR}/${APP_NAME}.xcodeproj/project.pbxproj" | awk -F '=' '{print $2}' | tr -d ' ;')"
-
+VERSION="$(grep -m 1 "MARKETING_VERSION" "${PROJECT_DIR}/${APP_NAME}.xcodeproj/project.pbxproj" | awk -F '=' '{print $2}' | tr -d ' ;"')"
 VERSION="${1:-$VERSION}"
+VERSION="${VERSION#v}"
 TAG="v${VERSION}"
+
+# Keep Sparkle's CFBundleVersion monotonically increasing and tied to the
+# marketing version (1.2.3 -> 10203). This avoids shipping a new tag with a
+# stale build number, which Sparkle would ignore.
+IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+PATCH="${PATCH%%-*}"
+BUILD_NUMBER=$((10#${MAJOR:-0} * 10000 + 10#${MINOR:-0} * 100 + 10#${PATCH:-0}))
 
 echo "======================================================================"
 echo " Preparing Release: ${APP_NAME} ${VERSION} (Build ${BUILD_NUMBER}) [${TAG}]"
@@ -116,12 +122,11 @@ DOWNLOAD_URL_PREFIX="https://github.com/lazydev17/TorrentClient/releases/downloa
 APPCAST_STAGING="$(mktemp -d -t "sparkle_stage_${APP_NAME}")"
 trap 'rm -rf "$APPCAST_STAGING" 2>/dev/null || true' EXIT
 
-# Copy all release zip archives and existing appcast into staging
-for z in "${DIST_DIR}"/*.zip; do
-    [ -f "$z" ] && cp "$z" "$APPCAST_STAGING/"
-done
-if [ -f "${DIST_DIR}/appcast.xml" ]; then
-    cp "${DIST_DIR}/appcast.xml" "${APPCAST_STAGING}/appcast.xml"
+# Only index the archive being released. Copying every historical zip would
+# assign all of them the current tag's download URL in the generated appcast.
+cp "$ZIP_PATH" "$APPCAST_STAGING/"
+if [ -f "${PROJECT_DIR}/appcast.xml" ]; then
+    cp "${PROJECT_DIR}/appcast.xml" "${APPCAST_STAGING}/appcast.xml"
 fi
 
 "$SPARKLE_BIN" \
@@ -134,10 +139,7 @@ fi
 # Sync updated appcast.xml back
 if [ -f "${APPCAST_STAGING}/appcast.xml" ]; then
     cp "${APPCAST_STAGING}/appcast.xml" "${DIST_DIR}/appcast.xml"
-    cp "${APPCAST_STAGING}/appcast.xml" "${PROJECT_DIR}/appcast.xml" 2>/dev/null || true
-    if [ -f "${PROJECT_DIR}/../appcast.xml" ]; then
-        cp "${APPCAST_STAGING}/appcast.xml" "${PROJECT_DIR}/../appcast.xml" 2>/dev/null || true
-    fi
+    cp "${APPCAST_STAGING}/appcast.xml" "${PROJECT_DIR}/appcast.xml"
     echo "    appcast.xml updated and cryptographically signed with EdDSA."
 fi
 

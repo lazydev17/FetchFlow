@@ -32,7 +32,7 @@ Instead, please report it responsibly by contacting the maintainer directly thro
 TorrentClient is a BitTorrent client that communicates over the network. Security-relevant areas include:
 
 - **Network communications**: The app uses libtorrent-rasterbar for peer-to-peer connections
-- **File system access**: Downloads are written to the user's Downloads folder via App Sandbox
+- **File system access**: Downloads are written to the user's Downloads folder via App Sandbox by default, or to a user-selected folder through a security-scoped bookmark
 - **Auto-updates**: Sparkle framework with EdDSA signature verification ensures update integrity
 - **App Sandbox**: The app runs in a hardened sandbox with only necessary entitlements (network client/server, Downloads folder access)
 

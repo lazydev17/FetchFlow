@@ -7,6 +7,7 @@ public enum TorrentState: String, CaseIterable, Codable {
     case downloadingMetadata = "Fetching Metadata"
     case downloading = "Downloading"
     case queued = "Queued"
+    case skipped = "No Files Selected"
     case finished = "Finished"
     case seeding = "Seeding"
     case paused = "Paused"
@@ -18,6 +19,7 @@ public enum TorrentState: String, CaseIterable, Codable {
         case .downloadingMetadata: return "antenna.radiowaves.left.and.right"
         case .downloading: return "arrow.down.circle.fill"
         case .queued: return "hourglass"
+        case .skipped: return "minus.circle.fill"
         case .finished: return "checkmark.circle.fill"
         case .seeding: return "arrow.up.circle.fill"
         case .paused: return "pause.circle.fill"
@@ -30,6 +32,7 @@ public enum TorrentState: String, CaseIterable, Codable {
         case .downloading: return .accentColor
         case .downloadingMetadata, .checkingFiles: return .purple
         case .queued: return .blue
+        case .skipped: return .gray
         case .finished, .seeding: return .green
         case .paused: return .orange
         case .error: return .red
@@ -147,8 +150,19 @@ public struct TorrentModel: Identifiable, Hashable {
         TorrentPriority(rawValue: priority) ?? .normal
     }
 
+    /// True when metadata is known and the user has excluded every file.
+    /// libtorrent reports such a torrent as finished/complete, but there is
+    /// nothing wanted, so the UI must not present it as a completed download.
+    public var isFullySkipped: Bool {
+        !files.isEmpty && files.allSatisfy { !$0.isIncluded }
+    }
+
+    public var displayProgress: Double {
+        isFullySkipped ? 0 : progress
+    }
+
     public var formattedProgress: String {
-        return String(format: "%.1f%%", progress * 100.0)
+        return String(format: "%.1f%%", displayProgress * 100.0)
     }
     
     public var formattedDownloadRate: String {
@@ -206,6 +220,10 @@ public struct TorrentModel: Identifiable, Hashable {
     }
     
     public var etaDescription: String {
+        if isFullySkipped {
+            return TorrentState.skipped.rawValue
+        }
+
         let remainingBytes: Int64
         if totalWanted > 0 {
             remainingBytes = max(0, totalWanted - wantedDownloaded)

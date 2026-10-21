@@ -304,6 +304,12 @@ static NSArray<NSDictionary<NSString *, id> *> *extract_files(lt::torrent_handle
                             lt::alert_category::storage);
     params.settings.set_str(lt::settings_pack::user_agent, "FetchFlow/1.0");
 
+    // Never let a stale session-state file make the initial session bind a
+    // privileged or half-typed port. Use OS-assigned ports until Swift applies
+    // the live UI settings via applySettings: (immediately after init).
+    params.settings.set_str(lt::settings_pack::listen_interfaces,
+                            "0.0.0.0:0,[::]:0");
+
     _session = std::make_shared<lt::session>(std::move(params));
     _running = true;
 
@@ -617,12 +623,11 @@ static NSArray<NSDictionary<NSString *, id> *> *extract_files(lt::torrent_handle
                         std::string errorMessage = listenError->error.message();
                         NSLog(@"libtorrent listen_failed: %s", message.c_str());
 
-                        // IPv6 may be unavailable on some machines; only surface
-                        // failures that indicate a real local problem.
-                        bool critical = errorMessage.find("in use") != std::string::npos
-                            || errorMessage.find("denied") != std::string::npos
-                            || errorMessage.find("permission") != std::string::npos
-                            || errorMessage.find("Permission") != std::string::npos;
+                        // IPv6 link-local/VPN interfaces can reject a bind for
+                        // reasons that do not affect the main IPv4 listener
+                        // (for example utun link-local addresses). Log those,
+                        // but only surface a real port conflict in the UI.
+                        bool critical = errorMessage.find("in use") != std::string::npos;
                         if (critical) {
                             postError("", "Network listener: " + message);
                         }
@@ -709,7 +714,9 @@ static NSArray<NSDictionary<NSString *, id> *> *extract_files(lt::torrent_handle
     bool autoStart = bool_setting(settings, @"autoStartDownloads", true);
 
     int port = int_setting(settings, @"customPort", 6881);
-    if (port < 1 || port > 65535) port = 6881;
+    // Ports below 1024 require root; fall back instead of provoking a
+    // permission-denied listen failure while the user is still typing.
+    if (port < 1024 || port > 65535) port = 6881;
 
     int maxActive = int_setting(settings, @"maxActiveTorrents", 5);
     maxActive = std::clamp(maxActive, 1, 50);

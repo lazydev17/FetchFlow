@@ -254,7 +254,7 @@ struct InspectorProgressTab: View {
         VStack(alignment: .leading, spacing: 12) {
             // Main progress bar & percentage
             HStack(spacing: 12) {
-                ProgressView(value: torrent.progress)
+                ProgressView(value: torrent.displayProgress)
                     .tint(torrent.state.tintColor)
 
                 Text(torrent.formattedProgress)
