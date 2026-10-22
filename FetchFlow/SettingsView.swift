@@ -138,7 +138,7 @@ private struct SettingsSidebarView: View {
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 16)
-                .padding(.top, 38)
+                .padding(.top, 8)
                 .padding(.bottom, 6)
 
             VStack(spacing: 3) {
