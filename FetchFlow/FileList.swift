@@ -214,51 +214,15 @@ struct TorrentTableRow: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 75, alignment: .trailing)
 
-            // 3-dots Context Menu Button (Vertical without arrow)
-            Menu {
-                Button(torrent.canResume ? "Resume" : "Pause") {
-                    torrent.canResume ? torrentManager.resumeTorrent(torrent.infoHash) : torrentManager.pauseTorrent(torrent.infoHash)
-                }
-                Button("Show in Finder") {
-                    torrentManager.openInFinder(torrent.infoHash)
-                }
-                Menu("Priority") {
-                    ForEach(TorrentPriority.allCases) { priority in
-                        Button {
-                            torrentManager.setPriority(priority, for: torrent.infoHash)
-                        } label: {
-                            if torrent.priorityValue == priority {
-                                Label(priority.rawValue, systemImage: "checkmark")
-                            } else {
-                                Text(priority.rawValue)
-                            }
-                        }
-                    }
-                }
-                Divider()
-                Button("Copy Magnet Link") {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(torrent.magnetURI, forType: .string)
-                }
-                Button("Copy Info Hash") {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(torrent.infoHash, forType: .string)
-                }
-                Divider()
-                Button("Remove", role: .destructive) {
-                    onDelete()
-                }
-            } label: {
-                Image(systemName: "ellipsis")
-                    .rotationEffect(.degrees(90))
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 24, height: 24)
-                    .contentShape(Rectangle())
+            // 3-dots Context Menu Button (Native NSMenu popup to eliminate SwiftUI render-loop flicker)
+            ActionMenuButton {
+                TorrentMenuBuilder.buildMenu(
+                    for: torrent,
+                    torrentManager: torrentManager,
+                    onDelete: onDelete
+                )
             }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .frame(width: 32, alignment: .center)
+            .frame(width: 32, height: 24)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
@@ -432,5 +396,251 @@ struct PersistentDropZoneView: View {
         } isTargeted: { targeted in
             isTargeted = targeted
         }
+    }
+}
+
+// MARK: - Native NSMenuItem Closure Target
+
+fileprivate final class MenuItemActionTarget: NSObject {
+    private let action: () -> Void
+
+    init(action: @escaping () -> Void) {
+        self.action = action
+        super.init()
+    }
+
+    @objc func invoke(_ sender: Any?) {
+        action()
+    }
+}
+
+fileprivate extension NSMenuItem {
+    convenience init(title: String, keyEquivalent: String = "", action: @escaping () -> Void) {
+        let target = MenuItemActionTarget(action: action)
+        self.init(title: title, action: #selector(MenuItemActionTarget.invoke(_:)), keyEquivalent: keyEquivalent)
+        self.target = target
+        self.representedObject = target
+    }
+}
+
+// MARK: - Native Torrent Menu Builder
+
+enum TorrentMenuBuilder {
+    @MainActor
+    static func buildMenu(
+        for torrent: TorrentModel,
+        torrentManager: TorrentManager,
+        onDelete: @escaping () -> Void
+    ) -> NSMenu {
+        let menu = NSMenu(title: "Torrent Actions")
+        menu.autoenablesItems = false
+
+        // Resume / Pause
+        let resumePauseTitle = torrent.canResume ? "Resume" : "Pause"
+        let resumePauseItem = NSMenuItem(title: resumePauseTitle) {
+            if torrent.canResume {
+                torrentManager.resumeTorrent(torrent.infoHash)
+            } else {
+                torrentManager.pauseTorrent(torrent.infoHash)
+            }
+        }
+        menu.addItem(resumePauseItem)
+
+        // Show in Finder
+        let finderItem = NSMenuItem(title: "Show in Finder") {
+            torrentManager.openInFinder(torrent.infoHash)
+        }
+        menu.addItem(finderItem)
+
+        // Priority Submenu
+        let prioritySubmenu = NSMenu(title: "Priority")
+        prioritySubmenu.autoenablesItems = false
+        for priority in TorrentPriority.allCases {
+            let item = NSMenuItem(title: priority.rawValue) {
+                torrentManager.setPriority(priority, for: torrent.infoHash)
+            }
+            item.state = (torrent.priorityValue == priority) ? .on : .off
+            prioritySubmenu.addItem(item)
+        }
+
+        let priorityParentItem = NSMenuItem(title: "Priority", action: nil, keyEquivalent: "")
+        priorityParentItem.submenu = prioritySubmenu
+        menu.addItem(priorityParentItem)
+
+        menu.addItem(NSMenuItem.separator())
+
+        // Copy Magnet Link
+        let magnetItem = NSMenuItem(title: "Copy Magnet Link") {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(torrent.magnetURI, forType: .string)
+        }
+        menu.addItem(magnetItem)
+
+        // Copy Info Hash
+        let hashItem = NSMenuItem(title: "Copy Info Hash") {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(torrent.infoHash, forType: .string)
+        }
+        menu.addItem(hashItem)
+
+        menu.addItem(NSMenuItem.separator())
+
+        // Remove
+        let removeItem = NSMenuItem(title: "Remove") {
+            DispatchQueue.main.async {
+                onDelete()
+            }
+        }
+        menu.addItem(removeItem)
+
+        return menu
+    }
+}
+
+// MARK: - Action Menu Button (Native AppKit PopUp to avoid SwiftUI render-loop flicker)
+
+struct ActionMenuButton: NSViewRepresentable {
+    let makeMenu: () -> NSMenu
+
+    func makeNSView(context: Context) -> ActionMenuNSButton {
+        let button = ActionMenuNSButton()
+        button.menuBuilder = makeMenu
+        return button
+    }
+
+    func updateNSView(_ nsView: ActionMenuNSButton, context: Context) {
+        nsView.menuBuilder = makeMenu
+    }
+}
+
+final class ActionMenuNSButton: NSButton {
+    var menuBuilder: (() -> NSMenu)?
+
+    private var trackingArea: NSTrackingArea?
+    private var isHovered = false
+    private var isMenuOpen = false
+
+    private static let verticalEllipsisImage: NSImage = {
+        let size = NSSize(width: 24, height: 24)
+        let img = NSImage(size: size, flipped: false) { _ in
+            guard let base = NSImage(systemSymbolName: "ellipsis", accessibilityDescription: nil) else {
+                return false
+            }
+            let config = NSImage.SymbolConfiguration(pointSize: 13, weight: .bold)
+            let configured = base.withSymbolConfiguration(config) ?? base
+
+            let transform = NSAffineTransform()
+            transform.translateX(by: size.width / 2, yBy: size.height / 2)
+            transform.rotate(byDegrees: 90)
+            transform.translateX(by: -size.height / 2, yBy: -size.width / 2)
+            transform.concat()
+
+            let drawRect = NSRect(
+                x: (size.width - configured.size.width) / 2,
+                y: (size.height - configured.size.height) / 2,
+                width: configured.size.width,
+                height: configured.size.height
+            )
+            configured.draw(in: drawRect)
+            return true
+        }
+        img.isTemplate = true
+        return img
+    }()
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        setup()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        setup()
+    }
+
+    private func setup() {
+        isBordered = false
+        imagePosition = .imageOnly
+        image = Self.verticalEllipsisImage
+        imageScaling = .scaleNone
+        contentTintColor = .secondaryLabelColor
+        bezelStyle = .regularSquare
+        setButtonType(.momentaryPushIn)
+        focusRingType = .none
+        toolTip = "More Actions"
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let trackingArea = trackingArea {
+            removeTrackingArea(trackingArea)
+        }
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeInActiveApp, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        trackingArea = area
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        super.mouseEntered(with: event)
+        isHovered = true
+        contentTintColor = .labelColor
+        needsDisplay = true
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        super.mouseExited(with: event)
+        isHovered = false
+        contentTintColor = isMenuOpen ? .labelColor : .secondaryLabelColor
+        needsDisplay = true
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        if isHighlighted || isMenuOpen {
+            let pillRect = bounds.insetBy(dx: 4, dy: 1)
+            let path = NSBezierPath(roundedRect: pillRect, xRadius: 4, yRadius: 4)
+            NSColor.separatorColor.withAlphaComponent(0.35).setFill()
+            path.fill()
+        } else if isHovered {
+            let pillRect = bounds.insetBy(dx: 4, dy: 1)
+            let path = NSBezierPath(roundedRect: pillRect, xRadius: 4, yRadius: 4)
+            NSColor.separatorColor.withAlphaComponent(0.18).setFill()
+            path.fill()
+        }
+        super.draw(dirtyRect)
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        presentMenu()
+    }
+
+    override func performClick(_ sender: Any?) {
+        presentMenu()
+    }
+
+    private func presentMenu() {
+        guard let menu = menuBuilder?() else { return }
+
+        isMenuOpen = true
+        highlight(true)
+        contentTintColor = .labelColor
+        needsDisplay = true
+
+        // Position directly below button, aligning the right edge of the menu with the button
+        let origin = NSPoint(x: bounds.maxX - menu.size.width, y: bounds.height + 2)
+        _ = menu.popUp(positioning: nil, at: origin, in: self)
+
+        isMenuOpen = false
+        highlight(false)
+        contentTintColor = isHovered ? .labelColor : .secondaryLabelColor
+        needsDisplay = true
+    }
+
+    override func menu(for event: NSEvent) -> NSMenu? {
+        return menuBuilder?()
     }
 }

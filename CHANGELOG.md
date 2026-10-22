@@ -6,7 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [1.0.6] - 2026-10-22
 
+### Added
+- Redesigned Bandwidth settings pane with 1-click quick speed presets (500 KB/s up to 100 MB/s), direct numeric entry, unit switcher (MB/s / KB/s), precision steppers, and real-time broadband equivalent (Mbps) calculation
+
 ### Fixed
+- Fixed priority submenu flickering: replaced SwiftUI row menu with native AppKit menu tracking so the High/Normal/Low popup never dismisses or flickers during active downloads
 - Installed version display in Settings now dynamically reflects the actual app version instead of a static placeholder
 - Fixed duplicate "Version" prefix in the About settings pane
 - Reduced excessive top padding in the settings sidebar to align cleanly with native macOS layout

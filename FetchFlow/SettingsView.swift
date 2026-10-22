@@ -346,44 +346,46 @@ struct BandwidthSettingsPane: View {
     var body: some View {
         Form {
             Section("Download Bandwidth") {
-                Toggle("Limit Download Speed", isOn: $limitDownloadRate)
+                Toggle("Limit Download Speed", isOn: $limitDownloadRate.animation(.easeInOut(duration: 0.18)))
                     .toggleStyle(.switch)
 
                 if limitDownloadRate {
-                    LabeledContent("Maximum Rate") {
-                        HStack(spacing: 8) {
-                            Slider(value: Binding(
-                                get: { Double(maxDownloadRateKB) },
-                                set: { maxDownloadRateKB = Int($0) }
-                            ), in: 500...50000, step: 500)
-                            .frame(width: 140)
-
-                            Text("\(maxDownloadRateKB) KB/s")
-                                .monospacedDigit()
-                                .frame(width: 80, alignment: .trailing)
-                        }
-                    }
+                    RateLimitConfigView(
+                        rateKB: $maxDownloadRateKB,
+                        presets: [
+                            (label: "500 KB/s", kb: 500),
+                            (label: "1 MB/s", kb: 1_000),
+                            (label: "2 MB/s", kb: 2_000),
+                            (label: "5 MB/s", kb: 5_000),
+                            (label: "10 MB/s", kb: 10_000),
+                            (label: "25 MB/s", kb: 25_000),
+                            (label: "50 MB/s", kb: 50_000),
+                            (label: "100 MB/s", kb: 100_000),
+                        ],
+                        minKB: 500,
+                        maxKB: 100_000
+                    )
                 }
             }
 
             Section("Upload Bandwidth") {
-                Toggle("Limit Upload Speed", isOn: $limitUploadRate)
+                Toggle("Limit Upload Speed", isOn: $limitUploadRate.animation(.easeInOut(duration: 0.18)))
                     .toggleStyle(.switch)
 
                 if limitUploadRate {
-                    LabeledContent("Maximum Rate") {
-                        HStack(spacing: 8) {
-                            Slider(value: Binding(
-                                get: { Double(maxUploadRateKB) },
-                                set: { maxUploadRateKB = Int($0) }
-                            ), in: 100...20000, step: 100)
-                            .frame(width: 140)
-
-                            Text("\(maxUploadRateKB) KB/s")
-                                .monospacedDigit()
-                                .frame(width: 80, alignment: .trailing)
-                        }
-                    }
+                    RateLimitConfigView(
+                        rateKB: $maxUploadRateKB,
+                        presets: [
+                            (label: "500 KB/s", kb: 500),
+                            (label: "1 MB/s", kb: 1_000),
+                            (label: "2 MB/s", kb: 2_000),
+                            (label: "5 MB/s", kb: 5_000),
+                            (label: "10 MB/s", kb: 10_000),
+                            (label: "20 MB/s", kb: 20_000),
+                        ],
+                        minKB: 100,
+                        maxKB: 25_000
+                    )
                 }
             }
 
@@ -400,6 +402,220 @@ struct BandwidthSettingsPane: View {
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
         .contentMargins(.top, 8, for: .scrollContent)
+    }
+}
+
+// MARK: - Rate Limit Config View
+
+struct RateLimitConfigView: View {
+    @Binding var rateKB: Int
+    let presets: [(label: String, kb: Int)]
+    let minKB: Int
+    let maxKB: Int
+
+    @State private var unit: RateUnit = .mb
+    @State private var textValue: String = ""
+    @FocusState private var isFieldFocused: Bool
+
+    enum RateUnit: String, CaseIterable, Identifiable {
+        case mb = "MB/s"
+        case kb = "KB/s"
+        var id: String { rawValue }
+    }
+
+    private var currentUnitMultiplier: Double {
+        unit == .mb ? 1000.0 : 1.0
+    }
+
+    private var mbpsEquivalent: Double {
+        (Double(rateKB) * 8.0) / 1000.0
+    }
+
+    private var formattedMbps: String {
+        if mbpsEquivalent >= 10 {
+            return String(format: "%.0f", mbpsEquivalent)
+        } else {
+            return String(format: "%.1f", mbpsEquivalent)
+        }
+    }
+
+    private var formattedRateString: String {
+        if rateKB >= 1000 && rateKB % 1000 == 0 {
+            return "\(rateKB / 1000) MB/s"
+        } else if rateKB >= 1000 {
+            return String(format: "%.1f MB/s", Double(rateKB) / 1000.0)
+        } else {
+            return "\(rateKB) KB/s"
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            // Quick Presets
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Quick Presets")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(presets, id: \.kb) { preset in
+                            let isSelected = rateKB == preset.kb
+                            Button {
+                                rateKB = preset.kb
+                                if preset.kb < 1000 {
+                                    unit = .kb
+                                } else if preset.kb % 1000 == 0 {
+                                    unit = .mb
+                                }
+                                syncTextFromRate()
+                            } label: {
+                                Text(preset.label)
+                                    .font(.system(size: 11.5, weight: isSelected ? .semibold : .regular))
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 4)
+                                    .background(
+                                        Capsule()
+                                            .fill(isSelected ? Color.accentColor : Color(nsColor: .quaternaryLabelColor).opacity(0.6))
+                                    )
+                                    .overlay(
+                                        Capsule()
+                                            .strokeBorder(isSelected ? Color.clear : Color(nsColor: .separatorColor).opacity(0.3), lineWidth: 0.8)
+                                    )
+                                    .foregroundStyle(isSelected ? Color.white : Color.primary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
+
+            Divider()
+                .opacity(0.6)
+
+            // Slider & Precise Input Row
+            HStack(spacing: 12) {
+                Slider(
+                    value: Binding(
+                        get: { Double(rateKB) },
+                        set: { newValue in
+                            let step: Double = unit == .mb ? 500 : 100
+                            let rounded = Int((newValue / step).rounded() * step)
+                            rateKB = max(minKB, min(maxKB, rounded))
+                            syncTextFromRate()
+                        }
+                    ),
+                    in: Double(minKB)...Double(maxKB)
+                )
+
+                HStack(spacing: 4) {
+                    TextField("", text: $textValue)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 58)
+                        .multilineTextAlignment(.trailing)
+                        .font(.system(size: 12.5).monospacedDigit())
+                        .focused($isFieldFocused)
+                        .onSubmit {
+                            commitTextValue()
+                        }
+                        .onChange(of: isFieldFocused) {
+                            if !isFieldFocused {
+                                commitTextValue()
+                            }
+                        }
+
+                    Picker("", selection: $unit) {
+                        ForEach(RateUnit.allCases) { u in
+                            Text(u.rawValue).tag(u)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .frame(width: 82)
+                    .onChange(of: unit) {
+                        syncTextFromRate()
+                    }
+
+                    Stepper("", onIncrement: {
+                        stepRate(by: 1)
+                    }, onDecrement: {
+                        stepRate(by: -1)
+                    })
+                    .labelsHidden()
+                    .controlSize(.small)
+                }
+            }
+
+            // Status Banner with Mbps Equivalent
+            HStack(spacing: 6) {
+                Image(systemName: "speedometer")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color.accentColor)
+
+                Text("Allocated limit: \(formattedRateString)")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.primary)
+
+                Text("•")
+                    .foregroundStyle(.tertiary)
+
+                Text("≈ \(formattedMbps) Mbps bandwidth")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.top, 2)
+        }
+        .padding(.vertical, 4)
+        .onAppear {
+            if rateKB < 1000 || rateKB % 1000 != 0 {
+                unit = .kb
+            } else {
+                unit = .mb
+            }
+            syncTextFromRate()
+        }
+        .onChange(of: rateKB) {
+            if !isFieldFocused {
+                syncTextFromRate()
+            }
+        }
+    }
+
+    private func stepRate(by direction: Int) {
+        if unit == .mb {
+            let currentMB = Double(rateKB) / 1000.0
+            let step: Double = currentMB < 2.0 ? 0.5 : 1.0
+            let newMB = max(Double(minKB) / 1000.0, min(Double(maxKB) / 1000.0, currentMB + (Double(direction) * step)))
+            rateKB = Int((newMB * 1000.0).rounded())
+        } else {
+            let step = 500
+            let newKB = max(minKB, min(maxKB, rateKB + (direction * step)))
+            rateKB = newKB
+        }
+        syncTextFromRate()
+    }
+
+    private func syncTextFromRate() {
+        if unit == .mb {
+            let mbVal = Double(rateKB) / 1000.0
+            if mbVal.truncatingRemainder(dividingBy: 1) == 0 {
+                textValue = "\(Int(mbVal))"
+            } else {
+                textValue = String(format: "%.1f", mbVal)
+            }
+        } else {
+            textValue = "\(rateKB)"
+        }
+    }
+
+    private func commitTextValue() {
+        guard let num = Double(textValue), num > 0 else {
+            syncTextFromRate()
+            return
+        }
+        let calculatedKB = Int((num * currentUnitMultiplier).rounded())
+        rateKB = max(minKB, min(maxKB, calculatedKB))
+        syncTextFromRate()
     }
 }
 
