@@ -3,6 +3,15 @@
     <channel>
         <title>FetchFlow</title>
         <item>
+            <title>1.0.6</title>
+            <pubDate>Thu, 22 Oct 2026 08:40:27 +0000</pubDate>
+            <sparkle:version>10006</sparkle:version>
+            <sparkle:shortVersionString>1.0.6</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.6</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <enclosure url="https://github.com/lazydev17/FetchFlow/releases/download/v1.0.6/FetchFlow-1.0.6.zip" length="5836596" type="application/octet-stream" sparkle:edSignature="VFcuf7ICNjdQSP9a+ozzbglPTeUAHLGwrzrSRl8mjd4gJ9BhKcQ4xExz0xioo+EyDhj5umQRsw28D5+k9unKDA=="/>
+        </item>
+        <item>
             <title>1.0.5</title>
             <pubDate>Wed, 21 Oct 2026 22:06:30 +0000</pubDate>
             <sparkle:version>10005</sparkle:version>
