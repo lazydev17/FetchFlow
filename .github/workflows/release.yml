@@ -100,12 +100,9 @@ jobs:
           STAGE_DIR="$(mktemp -d)"
           cp "releases/FetchFlow-${VERSION}.zip" "$STAGE_DIR/"
 
-          # Base the new feed on the latest main appcast, not the tag checkout.
-          # This avoids losing entries published after the tag and avoids a
-          # dirty appcast.xml blocking the later checkout of main.
-          git fetch origin main
-          if git show origin/main:appcast.xml > "$STAGE_DIR/appcast.xml" 2>/dev/null; then
-            echo "Using appcast.xml from origin/main."
+          # Fetch existing feed from latest release if available, or fall back to repository appcast.xml
+          if curl -fsSL "https://github.com/${{ github.repository }}/releases/latest/download/appcast.xml" -o "$STAGE_DIR/appcast.xml" 2>/dev/null; then
+            echo "Using appcast.xml from latest GitHub release."
           elif [ -f appcast.xml ]; then
             cp appcast.xml "$STAGE_DIR/appcast.xml"
           fi
@@ -139,6 +136,7 @@ jobs:
             releases/FetchFlow-${{ steps.version.outputs.version }}.dmg.sha256
             releases/FetchFlow-${{ steps.version.outputs.version }}.zip
             releases/FetchFlow-${{ steps.version.outputs.version }}.zip.sha256
+            releases/appcast.xml
           generate_release_notes: false
           body: |
             ## FetchFlow ${{ steps.version.outputs.tag }}
@@ -162,18 +160,3 @@ jobs:
             for the full list of changes.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Commit & Push Updated appcast.xml
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git fetch origin main
-          git checkout -B main origin/main
-          cp releases/appcast.xml appcast.xml
-          if ! git diff --quiet appcast.xml; then
-            git add appcast.xml
-            git commit -m "chore: update appcast.xml for ${{ steps.version.outputs.tag }} [skip ci]"
-            git push origin main
-          else
-            echo "appcast.xml has no changes to commit."
-          fi

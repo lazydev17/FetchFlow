@@ -352,7 +352,7 @@
 				INFOPLIST_KEY_SUAllowsAutomaticUpdates = YES;
 				INFOPLIST_KEY_SUEnableAutomaticChecks = YES;
 				INFOPLIST_KEY_SUEnableInstallerLauncherService = YES;
-				INFOPLIST_KEY_SUFeedURL = "https://raw.githubusercontent.com/lazydev17/FetchFlow/main/appcast.xml";
+				INFOPLIST_KEY_SUFeedURL = "https://github.com/lazydev17/FetchFlow/releases/latest/download/appcast.xml";
 				INFOPLIST_KEY_SUPublicEDKey = "i1tiylZKTzkeCnQfdTE2MHVUIOz9MQF++zGNcxclcXU=";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -423,7 +423,7 @@
 				INFOPLIST_KEY_SUAllowsAutomaticUpdates = YES;
 				INFOPLIST_KEY_SUEnableAutomaticChecks = YES;
 				INFOPLIST_KEY_SUEnableInstallerLauncherService = YES;
-				INFOPLIST_KEY_SUFeedURL = "https://raw.githubusercontent.com/lazydev17/FetchFlow/main/appcast.xml";
+				INFOPLIST_KEY_SUFeedURL = "https://github.com/lazydev17/FetchFlow/releases/latest/download/appcast.xml";
 				INFOPLIST_KEY_SUPublicEDKey = "i1tiylZKTzkeCnQfdTE2MHVUIOz9MQF++zGNcxclcXU=";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
