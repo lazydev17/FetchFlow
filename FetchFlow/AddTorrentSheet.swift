@@ -59,7 +59,7 @@ struct AddTorrentSheet: View {
                                     .truncationMode(.middle)
                                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                                Button("Browse…", action: chooseTorrentFile)
+                                Button("Browse", action: chooseTorrentFile)
                                     .controlSize(.small)
                             }
                         }
@@ -78,7 +78,7 @@ struct AddTorrentSheet: View {
 
                             Spacer()
 
-                            Button("Choose…", action: chooseDestinationFolder)
+                            Button("Choose", action: chooseDestinationFolder)
                                 .controlSize(.small)
                         }
                     }

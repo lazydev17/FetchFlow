@@ -233,6 +233,12 @@ struct GeneralSettingsPane: View {
             ?? "~/Downloads"
     }
 
+    private var appVersion: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.6"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "6"
+        return "\(version) (Build \(build))"
+    }
+
     var body: some View {
         Form {
             Section("Download Directory") {
@@ -248,7 +254,7 @@ struct GeneralSettingsPane: View {
                 }
 
                 HStack(spacing: 8) {
-                    Button("Choose Folder...") {
+                    Button("Choose Folder") {
                         chooseFolder()
                     }
                     .controlSize(.small)
@@ -300,10 +306,10 @@ struct GeneralSettingsPane: View {
                 HStack {
                     Text("Installed Version")
                     Spacer()
-                    Text("1.0 (Build 1)")
+                    Text(appVersion)
                         .foregroundStyle(.secondary)
                         .font(.callout)
-                    Button("Check Now…") {
+                    Button("Check Now") {
                         UpdaterViewModel.shared.checkForUpdates()
                     }
                     .controlSize(.small)
@@ -490,7 +496,7 @@ struct AboutSettingsPane: View {
                         Text("FetchFlow")
                             .font(.title2.bold())
 
-                        Text("Version \(appVersion)")
+                        Text(appVersion)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
 

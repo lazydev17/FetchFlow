@@ -92,7 +92,7 @@ struct FileList: View {
             NSPasteboard.general.setString(torrent.infoHash, forType: .string)
         }
         Divider()
-        Button("Remove…", role: .destructive) { torrentToDelete = torrent; showingDeleteConfirmation = true }
+        Button("Remove", role: .destructive) { torrentToDelete = torrent; showingDeleteConfirmation = true }
     }
 }
 
@@ -245,7 +245,7 @@ struct TorrentTableRow: View {
                     NSPasteboard.general.setString(torrent.infoHash, forType: .string)
                 }
                 Divider()
-                Button("Remove…", role: .destructive) {
+                Button("Remove", role: .destructive) {
                     onDelete()
                 }
             } label: {

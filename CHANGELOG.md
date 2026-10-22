@@ -4,6 +4,17 @@ All notable changes to FetchFlow will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.0.6] - 2026-10-22
+
+### Fixed
+- Installed version display in Settings now dynamically reflects the actual app version instead of a static placeholder
+- Fixed duplicate "Version" prefix in the About settings pane
+- Reduced excessive top padding in the settings sidebar to align cleanly with native macOS layout
+
+### Changed
+- Removed trailing ellipsis (`...` / `…`) from buttons across the app (Choose Folder, Check Now, Browse, Settings, etc.)
+- Switched Sparkle update feed to release asset delivery (`releases/latest/download/appcast.xml`)
+
 ## [1.0.5] - 2026-10-22
 
 ### Added
@@ -66,6 +77,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Sparkle auto-update integration
 - GitHub Actions release pipeline with DMG packaging
 
+[1.0.6]: https://github.com/lazydev17/FetchFlow/releases/tag/v1.0.6
 [1.0.5]: https://github.com/lazydev17/FetchFlow/releases/tag/v1.0.5
 [1.0.4]: https://github.com/lazydev17/FetchFlow/releases/tag/v1.0.4
 [1.0.3]: https://github.com/lazydev17/FetchFlow/releases/tag/v1.0.3
