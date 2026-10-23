@@ -751,42 +751,56 @@ struct NetworkSettingsPane: View {
                     }
                 }
 
-                // Global limit slider
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text("Global Connection Limit")
-                        Spacer()
+                LabeledContent("Global Connection Limit") {
+                    HStack(spacing: 8) {
+                        Slider(
+                            value: Binding(
+                                get: { Double(maxGlobalConnections) },
+                                set: { newValue in
+                                    let rounded = Int((newValue / 10.0).rounded() * 10.0)
+                                    maxGlobalConnections = max(30, min(1000, rounded))
+                                    connectionProfile = "custom"
+                                }
+                            ),
+                            in: 30...1000
+                        )
+
                         Text("\(maxGlobalConnections)")
+                            .font(.system(size: 12.5).monospacedDigit())
                             .foregroundStyle(.secondary)
-                            .monospacedDigit()
+                            .frame(width: 36, alignment: .trailing)
                     }
-                    Slider(value: Binding(
-                        get: { Double(maxGlobalConnections) },
-                        set: {
-                            maxGlobalConnections = Int($0)
-                            connectionProfile = "custom"
-                        }
-                    ), in: 30...1000, step: 10)
                 }
 
-                // Per-torrent limit slider
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text("Per-Torrent Connection Limit")
-                        Spacer()
+                LabeledContent("Per-Torrent Limit") {
+                    HStack(spacing: 8) {
+                        Slider(
+                            value: Binding(
+                                get: { Double(maxConnectionsPerTorrent) },
+                                set: { newValue in
+                                    let rounded = Int((newValue / 5.0).rounded() * 5.0)
+                                    maxConnectionsPerTorrent = max(10, min(300, rounded))
+                                    connectionProfile = "custom"
+                                }
+                            ),
+                            in: 10...300
+                        )
+
                         Text("\(maxConnectionsPerTorrent)")
+                            .font(.system(size: 12.5).monospacedDigit())
                             .foregroundStyle(.secondary)
-                            .monospacedDigit()
+                            .frame(width: 36, alignment: .trailing)
                     }
-                    Slider(value: Binding(
-                        get: { Double(maxConnectionsPerTorrent) },
-                        set: {
-                            maxConnectionsPerTorrent = Int($0)
-                            connectionProfile = "custom"
-                        }
-                    ), in: 10...300, step: 5)
                 }
+            } header: {
+                Text("Connections & Router Stability")
+            } footer: {
+                Text("Controls concurrent connections to prevent home router NAT table exhaustion and Wi-Fi bufferbloat. Real-time active swarm stats can be monitored in the Inspector Connections tab.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
+            Section("Traffic Management") {
                 Toggle(isOn: $mixedModePreferTCP) {
                     HStack(spacing: 8) {
                         Image(systemName: "globe.americas.fill")
@@ -802,12 +816,6 @@ struct NetworkSettingsPane: View {
                     }
                 }
                 .toggleStyle(.switch)
-            } header: {
-                Text("Connections & Router Stability")
-            } footer: {
-                Text("Controls concurrent connections to prevent home router NAT table exhaustion and Wi-Fi bufferbloat. Real-time active swarm stats can be monitored in the Inspector Connections tab.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
 
             Section("Peer Discovery") {
