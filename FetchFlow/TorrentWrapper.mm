@@ -61,6 +61,12 @@ static int int_setting(NSDictionary<NSString *, id> *settings, NSString *key, in
     return [value intValue];
 }
 
+static std::string string_setting(NSDictionary<NSString *, id> *settings, NSString *key, NSString *fallback) {
+    id value = settings[key];
+    if ([value isKindOfClass:[NSString class]]) return utf8((NSString *)value);
+    return fallback ? utf8(fallback) : std::string();
+}
+
 static std::string state_to_string(lt::torrent_status::state_t state) {
     switch (state) {
         case lt::torrent_status::checking_files: return "Checking";
@@ -393,6 +399,9 @@ static NSArray<NSDictionary<NSString *, id> *> *extract_files(lt::torrent_handle
     std::mutex _cbMutex;
     std::mutex _handleMutex;
     std::mutex _addErrorMutex;
+    std::mutex _interfaceMutex;
+    std::string _currentBoundInterface;
+    bool _currentKillSwitchActive;
     NSString *_lastAddError;
     std::map<std::string, lt::torrent_handle> _handles;
 
@@ -408,6 +417,7 @@ static NSArray<NSDictionary<NSString *, id> *> *extract_files(lt::torrent_handle
     _running = false;
     _stopped = false;
     _autoStartNewTorrents = true;
+    _currentKillSwitchActive = false;
 
     [self setupSupportDirectories];
 
@@ -877,13 +887,52 @@ static NSArray<NSDictionary<NSString *, id> *> *extract_files(lt::torrent_handle
     pack.set_bool(lt::settings_pack::enable_upnp, enableUPnP);
     pack.set_bool(lt::settings_pack::enable_natpmp, enableUPnP);
 
-    if (randomPort) {
-        pack.set_str(lt::settings_pack::listen_interfaces, "0.0.0.0:0,[::]:0");
-    } else {
-        std::ostringstream interfaces;
-        interfaces << "0.0.0.0:" << port << ",[::]:" << port;
-        pack.set_str(lt::settings_pack::listen_interfaces, interfaces.str());
+    std::string boundInterface = string_setting(settings, @"boundInterface", @"");
+    bool killSwitchActive = bool_setting(settings, @"killSwitchActive", false);
+
+    bool interfaceChanged = false;
+    {
+        std::lock_guard<std::mutex> lock(_interfaceMutex);
+        if (_currentBoundInterface != boundInterface || _currentKillSwitchActive != killSwitchActive) {
+            _currentBoundInterface = boundInterface;
+            _currentKillSwitchActive = killSwitchActive;
+            interfaceChanged = true;
+        }
     }
+
+    if (killSwitchActive) {
+        // Kill switch active: bind to loopback dummy to drop all traffic and prevent leaks
+        pack.set_str(lt::settings_pack::outgoing_interfaces, "127.0.0.1");
+        pack.set_str(lt::settings_pack::listen_interfaces, "127.0.0.1:0");
+    } else if (!boundInterface.empty()) {
+        // Specific interface (e.g. utun4, en0)
+        pack.set_str(lt::settings_pack::outgoing_interfaces, boundInterface);
+        if (randomPort) {
+            pack.set_str(lt::settings_pack::listen_interfaces, boundInterface + ":0");
+        } else {
+            std::ostringstream interfaces;
+            interfaces << boundInterface << ":" << port;
+            pack.set_str(lt::settings_pack::listen_interfaces, interfaces.str());
+        }
+    } else {
+        // Any interface
+        pack.set_str(lt::settings_pack::outgoing_interfaces, "");
+        if (randomPort) {
+            pack.set_str(lt::settings_pack::listen_interfaces, "0.0.0.0:0,[::]:0");
+        } else {
+            std::ostringstream interfaces;
+            interfaces << "0.0.0.0:" << port << ",[::]:" << port;
+            pack.set_str(lt::settings_pack::listen_interfaces, interfaces.str());
+        }
+    }
+
+    int maxConnections = std::clamp(int_setting(settings, @"maxGlobalConnections", 200), 20, 2000);
+    pack.set_int(lt::settings_pack::connections_limit, maxConnections);
+
+    bool preferTCP = bool_setting(settings, @"mixedModePreferTCP", true);
+    pack.set_int(lt::settings_pack::mixed_mode_algorithm,
+                 preferTCP ? static_cast<int>(lt::settings_pack::prefer_tcp)
+                           : static_cast<int>(lt::settings_pack::peer_proportional));
 
     pack.set_int(lt::settings_pack::download_rate_limit,
                  limitDownload ? static_cast<int>(downloadBytes) : 0);
@@ -897,9 +946,33 @@ static NSArray<NSDictionary<NSString *, id> *> *extract_files(lt::torrent_handle
 
     if (_session) {
         _session->apply_settings(std::move(pack));
+        if (interfaceChanged) {
+            try {
+                _session->reopen_network_sockets();
+                NSLog(@"TorrentWrapper: Interface changed to '%s' (killSwitch=%d); reopened sockets.",
+                      boundInterface.c_str(), killSwitchActive);
+            } catch (std::exception const& e) {
+                NSLog(@"TorrentWrapper: reopen_network_sockets after interface change failed: %s", e.what());
+            }
+        }
     }
 }
 
+- (void)reopenNetworkSockets {
+    if (_session) {
+        try {
+            _session->reopen_network_sockets();
+            NSLog(@"TorrentWrapper: reopened network sockets");
+        } catch (std::exception const& e) {
+            NSLog(@"TorrentWrapper: reopen_network_sockets failed: %s", e.what());
+        }
+    }
+}
+
+- (NSString *)currentBoundInterface {
+    std::lock_guard<std::mutex> lock(_interfaceMutex);
+    return nsstring(_currentBoundInterface);
+}
 // MARK: - Add errors
 
 - (void)setLastAddError:(nullable NSString *)message {

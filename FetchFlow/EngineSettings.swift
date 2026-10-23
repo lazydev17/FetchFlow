@@ -22,6 +22,11 @@ enum EngineSettings {
     static let randomPortKey = "randomPort"
     static let customPortKey = "customPort"
 
+    static let networkInterfaceModeKey = "networkInterfaceMode"
+    static let killSwitchEnabledKey = "killSwitchEnabled"
+    static let maxGlobalConnectionsKey = "maxGlobalConnections"
+    static let mixedModePreferTCPKey = "mixedModePreferTCP"
+
     static let customSavePathBookmarkKey = "securityScope.customSavePath"
 
     // MARK: - Values
@@ -45,6 +50,23 @@ enum EngineSettings {
         return min(max(value, 1), 50)
     }
 
+    static var networkInterfaceMode: String {
+        defaults.string(forKey: networkInterfaceModeKey) ?? "auto_vpn"
+    }
+
+    static var killSwitchEnabled: Bool {
+        defaults.object(forKey: killSwitchEnabledKey) as? Bool ?? false
+    }
+
+    static var maxGlobalConnections: Int {
+        let value = defaults.object(forKey: maxGlobalConnectionsKey) as? Int ?? 200
+        return min(max(value, 20), 2000)
+    }
+
+    static var mixedModePreferTCP: Bool {
+        defaults.object(forKey: mixedModePreferTCPKey) as? Bool ?? true
+    }
+
     /// Payload consumed by `TorrentWrapper -applySettings:`.
     static var enginePayload: [String: Any] {
         [
@@ -58,7 +80,13 @@ enum EngineSettings {
             "limitUploadRate": defaults.object(forKey: limitUploadRateKey) as? Bool ?? false,
             "maxUploadRateKB": defaults.object(forKey: maxUploadRateKBKey) as? Int ?? 1000,
             "maxActiveTorrents": maxActiveTorrents,
-            "autoStartDownloads": autoStartDownloads
+            "autoStartDownloads": autoStartDownloads,
+            "networkInterfaceMode": networkInterfaceMode,
+            "killSwitchEnabled": killSwitchEnabled,
+            "maxGlobalConnections": maxGlobalConnections,
+            "mixedModePreferTCP": mixedModePreferTCP,
+            "boundInterface": "",
+            "killSwitchActive": false
         ]
     }
 

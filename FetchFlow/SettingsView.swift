@@ -628,8 +628,96 @@ struct NetworkSettingsPane: View {
     @AppStorage("randomPort") private var randomPort = true
     @AppStorage("customPort") private var customPort = 6881
 
+    @AppStorage("networkInterfaceMode") private var networkInterfaceMode = "auto_vpn"
+    @AppStorage("killSwitchEnabled") private var killSwitchEnabled = false
+    @AppStorage("maxGlobalConnections") private var maxGlobalConnections = 200
+    @AppStorage("mixedModePreferTCP") private var mixedModePreferTCP = true
+
+    @ObservedObject private var networkService = NetworkInterfaceService.shared
+
     var body: some View {
         Form {
+            Section {
+                Picker("Interface", selection: $networkInterfaceMode) {
+                    Text("Auto-Detect VPN (Recommended)").tag("auto_vpn")
+                    Text("Any Interface (All)").tag("any")
+                    Divider()
+                    ForEach(networkService.availableInterfaces) { iface in
+                        Text(iface.displayName).tag(iface.name)
+                    }
+                }
+
+                HStack {
+                    if networkService.isConnectedToVPN {
+                        Label {
+                            Text("Active: \(networkService.activeVPN?.displayName ?? "VPN")")
+                        } icon: {
+                            Image(systemName: "lock.shield.fill")
+                                .foregroundStyle(.green)
+                        }
+                    } else {
+                        Label {
+                            Text("Direct Connection (No VPN active)")
+                        } icon: {
+                            Image(systemName: "network")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Spacer()
+                    Button("Refresh") {
+                        networkService.refreshInterfaces()
+                    }
+                    .controlSize(.small)
+                }
+                .font(.caption)
+
+                Toggle(isOn: $killSwitchEnabled) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Require VPN (Kill Switch)")
+                        Text("Halt transfers if the VPN disconnects to prevent leaking your real IP address.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .toggleStyle(.switch)
+            } header: {
+                Text("VPN & Network Routing")
+            } footer: {
+                Text("When set to Auto-Detect, FetchFlow automatically binds to your VPN tunnel whenever connected. If you start a download on Wi-Fi and then connect to your VPN, traffic seamlessly transfers to the VPN.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                HStack {
+                    Text("Max Connections")
+                    Spacer()
+                    Text("\(maxGlobalConnections)")
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+                Slider(value: Binding(
+                    get: { Double(maxGlobalConnections) },
+                    set: { maxGlobalConnections = Int($0) }
+                ), in: 30...600, step: 10)
+
+                Toggle(isOn: $mixedModePreferTCP) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Prioritize Web Browsing")
+                        Text("Ensures background torrent packets yield bandwidth when you load websites.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .toggleStyle(.switch)
+            } header: {
+                Text("Connection Stability & Quality of Service")
+            } footer: {
+                Text("Limits concurrent connections to prevent home routers from freezing or dropping DNS requests.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Peer Discovery") {
                 Toggle(isOn: $enableDHT) {
                     VStack(alignment: .leading, spacing: 2) {

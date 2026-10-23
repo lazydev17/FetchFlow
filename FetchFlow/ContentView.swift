@@ -13,6 +13,25 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            if let warning = torrentManager.vpnDiagnosticWarning {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                    Text(warning)
+                        .font(.system(size: 12, weight: .medium))
+                        .lineLimit(2)
+                    Spacer()
+                    Button("Dismiss") {
+                        torrentManager.dismissVpnWarning()
+                    }
+                    .controlSize(.small)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(Color.orange.opacity(0.12))
+                .overlay(Divider(), alignment: .bottom)
+            }
+
             FileList(isPresentingAddSheet: $isPresentingAddSheet)
         }
         .frame(minWidth: 780, minHeight: 480)

@@ -66,6 +66,12 @@ typedef void (^TorrentRemovedBlock)(NSString *infoHash);
 // Saves resume data and session state, then tears the session down. Idempotent.
 - (void)stopAll;
 
+// Re-binds all listen and outgoing sockets to accommodate network interface or VPN changes.
+- (void)reopenNetworkSockets;
+
+// The interface libtorrent is currently bound to (e.g. @"utun4"), or empty string if unbound.
+- (NSString *)currentBoundInterface;
+
 @end
 
 NS_ASSUME_NONNULL_END

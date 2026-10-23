@@ -31,6 +31,13 @@ public class TorrentManager: ObservableObject {
     @Published public var totalDownloadRate: Int64 = 0
     @Published public var totalUploadRate: Int64 = 0
 
+    // Diagnostic warning for VPN blocks / network stall
+    @Published public private(set) var vpnDiagnosticWarning: String? = nil
+
+    public func dismissVpnWarning() {
+        vpnDiagnosticWarning = nil
+    }
+
     private let wrapper = TorrentWrapper()
     private let persistenceKey = "SavedTorrentsRecords_v1"
 
@@ -41,13 +48,20 @@ public class TorrentManager: ObservableObject {
     private var isShuttingDown = false
 
     public init() {
-        wrapper.applySettings(EngineSettings.enginePayload)
-        lastEngineSettingsSignature = EngineSettings.enginePayloadSignature
+        let initialPayload = Self.effectivePayload()
+        wrapper.applySettings(initialPayload)
+        lastEngineSettingsSignature = Self.signature(for: initialPayload)
 
         setupCallbacks()
         setupObservers()
         startFileProgressTimer()
         loadPersistedTorrents()
+
+        NetworkInterfaceService.shared.onInterfaceTopologyChanged = { [weak self] newVPN, _ in
+            Task { @MainActor [weak self] in
+                self?.handleNetworkInterfaceChanged(newVPN: newVPN)
+            }
+        }
     }
 
     deinit {
@@ -104,11 +118,54 @@ public class TorrentManager: ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6, execute: work)
     }
 
-    private func applyEngineSettings() {
-        let signature = EngineSettings.enginePayloadSignature
-        guard signature != lastEngineSettingsSignature else { return }
+    private func applyEngineSettings(force: Bool = false) {
+        let payload = Self.effectivePayload()
+        let signature = Self.signature(for: payload)
+        guard force || signature != lastEngineSettingsSignature else { return }
         lastEngineSettingsSignature = signature
-        wrapper.applySettings(EngineSettings.enginePayload)
+        wrapper.applySettings(payload)
+    }
+
+    private func handleNetworkInterfaceChanged(newVPN: NetworkInterfaceInfo?) {
+        guard !isShuttingDown else { return }
+        let mode = EngineSettings.networkInterfaceMode
+        let killSwitch = EngineSettings.killSwitchEnabled
+
+        if let newVPN = newVPN {
+            print("FetchFlow: VPN connected (\(newVPN.displayName)). Switching torrent traffic to VPN...")
+            vpnDiagnosticWarning = nil
+        } else {
+            if killSwitch && mode == "auto_vpn" {
+                print("FetchFlow: VPN disconnected with Kill Switch active. Transfers halted.")
+                vpnDiagnosticWarning = "VPN disconnected. Transfers halted by Kill Switch to prevent unencrypted leaks."
+            } else {
+                print("FetchFlow: VPN disconnected. Reverting torrent traffic to default network route...")
+                vpnDiagnosticWarning = nil
+            }
+        }
+
+        applyEngineSettings(force: true)
+        wrapper.reopenNetworkSockets()
+    }
+
+    private static func effectivePayload() -> [String: Any] {
+        var payload = EngineSettings.enginePayload
+        let mode = EngineSettings.networkInterfaceMode
+        let killSwitch = EngineSettings.killSwitchEnabled
+        let bound = NetworkInterfaceService.shared.resolveBoundInterface(mode: mode)
+        let killSwitchActive = killSwitch && (mode == "auto_vpn" && bound == nil)
+
+        payload["boundInterface"] = bound ?? ""
+        payload["killSwitchActive"] = killSwitchActive
+
+        return payload
+    }
+
+    private static func signature(for payload: [String: Any]) -> String {
+        payload
+            .map { "\($0.key)=\($0.value)" }
+            .sorted()
+            .joined(separator: "&")
     }
 
     private func startFileProgressTimer() {

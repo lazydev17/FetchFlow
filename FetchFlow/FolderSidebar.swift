@@ -3,6 +3,7 @@ import AppKit
 
 struct FolderSidebar: View {
     @EnvironmentObject private var torrentManager: TorrentManager
+    @ObservedObject private var networkService = NetworkInterfaceService.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -62,6 +63,18 @@ struct FolderSidebar: View {
                 }
 
                 Spacer()
+
+                if networkService.isConnectedToVPN {
+                    Image(systemName: "lock.shield.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.green)
+                        .help("Routing via VPN (\(networkService.activeVPN?.name ?? "utun"))")
+                } else if EngineSettings.killSwitchEnabled && EngineSettings.networkInterfaceMode == "auto_vpn" {
+                    Image(systemName: "exclamationmark.shield.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.orange)
+                        .help("Kill Switch Active: VPN disconnected, traffic paused")
+                }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
