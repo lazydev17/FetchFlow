@@ -4,6 +4,21 @@ All notable changes to FetchFlow will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.0.7] - 2026-10-24
+
+### Added
+- Automatic VPN interface routing: dynamically scans and binds to active VPN tunnels (`utun*`, `wg*`, Point-to-Point) with automatic hot-swap when VPN toggles
+- VPN Kill Switch protection: halts incoming and outgoing torrent traffic immediately if the VPN disconnects
+- Redesigned Connections settings pane with pre-configured Network Profiles (Fast, Conservative, Custom)
+- Inspector Swarm Health Status indicator: visually indicates swarm availability (Healthy, Moderate, Low, Dead) based on seed-to-peer ratios
+
+### Fixed
+- Fixed selective file download persistence: deselected/skipped files retain priority `0` across application restarts instead of being re-selected
+- Fixed data loss race condition: prevented premature resume data saves from wiping piece bitfields and showing 0% progress for completed/downloaded files
+- Added automatic background local file verification and recovery when corrupted or empty resume data is encountered
+- Modernized connection limit sliders: removed discrete tick mark artifacts and aligned rows with macOS System Settings layout using `LabeledContent`
+- Fixed compiler build issue: resolved ambiguous POSIX `stat` symbol conflict with `libtorrent::stat` using Foundation's `NSFileManager`
+
 ## [1.0.6] - 2026-10-22
 
 ### Added
@@ -81,6 +96,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Sparkle auto-update integration
 - GitHub Actions release pipeline with DMG packaging
 
+[1.0.7]: https://github.com/lazydev17/FetchFlow/releases/tag/v1.0.7
 [1.0.6]: https://github.com/lazydev17/FetchFlow/releases/tag/v1.0.6
 [1.0.5]: https://github.com/lazydev17/FetchFlow/releases/tag/v1.0.5
 [1.0.4]: https://github.com/lazydev17/FetchFlow/releases/tag/v1.0.4
