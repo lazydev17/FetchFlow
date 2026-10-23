@@ -274,7 +274,6 @@ public class TorrentManager: ObservableObject {
                 let previousInclusion = Dictionary(
                     uniqueKeysWithValues: (self.torrents[key]?.files ?? []).map { ($0.index, $0.isIncluded) }
                 )
-                let isNewTorrent = previousInclusion.isEmpty
 
                 var fileItems: [TorrentFileItem] = []
                 for dict in rawFiles {
@@ -290,54 +289,6 @@ public class TorrentManager: ObservableObject {
                         progress: prog,
                         isIncluded: previousInclusion[idx] ?? (priority > 0)
                     ))
-                }
-
-                // If this is a newly added torrent without prior user file customization:
-                // Safely apply smart safe defaults:
-                // 1) Risky files are strictly excluded.
-                // 2) If video files exist: if 1 dominant movie (movie vs sample clip), select only the main movie.
-                //    If multiple comparable videos (TV episodes / series / multi-part), select all episodes (>= 15% of max).
-                // 3) If audio only (music album): select all audio tracks.
-                // 4) If no media files: select single largest safe file.
-                if isNewTorrent && !fileItems.isEmpty {
-                    let safeItems = fileItems.filter { !$0.isRisky }
-                    let videoItems = safeItems.filter { $0.isVideo }.sorted { $0.size > $1.size }
-                    let audioItems = safeItems.filter { $0.isAudio }
-
-                    var targetIndices = Set<Int>()
-
-                    if let mainVideo = videoItems.first {
-                        if videoItems.count == 1 {
-                            targetIndices.insert(mainVideo.index)
-                        } else {
-                            let secondVideoSize = videoItems[1].size
-                            if secondVideoSize * 3 < mainVideo.size {
-                                // Dominant video (e.g. main movie vs small sample/teaser)
-                                targetIndices.insert(mainVideo.index)
-                            } else {
-                                // Multi-episode series or multi-part movie: include all episodes >= 15% of largest
-                                let threshold = Int64(Double(mainVideo.size) * 0.15)
-                                for v in videoItems where v.size >= threshold {
-                                    targetIndices.insert(v.index)
-                                }
-                            }
-                        }
-                    } else if !audioItems.isEmpty {
-                        // Music album or audio pack: include all audio tracks
-                        for a in audioItems {
-                            targetIndices.insert(a.index)
-                        }
-                    } else if let largestSafe = safeItems.max(by: { $0.size < $1.size }) {
-                        targetIndices.insert(largestSafe.index)
-                    }
-
-                    for i in 0..<fileItems.count {
-                        let shouldInclude = targetIndices.contains(fileItems[i].index) && !fileItems[i].isRisky
-                        fileItems[i].isIncluded = shouldInclude
-                        let p = shouldInclude ? 4 : 0
-                        self.wrapper.setFilePriority(Int32(fileItems[i].index), priority: Int32(p), infoHash: key)
-                    }
-                    self.wrapper.saveResumeData(forTorrent: key)
                 }
 
                 if var item = self.torrents[key] {
