@@ -69,6 +69,7 @@ struct FileList: View {
             torrent.canResume ? torrentManager.resumeTorrent(torrent.infoHash) : torrentManager.pauseTorrent(torrent.infoHash)
         }
         Button("Show in Finder") { torrentManager.openInFinder(torrent.infoHash) }
+        Button("Force Recheck") { torrentManager.forceRecheck(torrent.infoHash) }
         Menu("Priority") {
             ForEach(TorrentPriority.allCases) { priority in
                 Button {

@@ -57,6 +57,9 @@ typedef void (^TorrentRemovedBlock)(NSString *infoHash);
 // Asks libtorrent to write fast-resume data for this torrent (includes file priorities).
 - (void)saveResumeDataForTorrent:(NSString *)infoHash;
 
+// Forces libtorrent to re-verify downloaded pieces against physical files on disk.
+- (void)forceRecheck:(NSString *)infoHash;
+
 // Per-file progress in [0, 1], ordered by libtorrent file index. Nil until metadata exists.
 - (nullable NSArray<NSNumber *> *)fileProgressForTorrent:(NSString *)infoHash;
 

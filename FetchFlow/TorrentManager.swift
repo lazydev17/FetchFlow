@@ -519,6 +519,14 @@ public class TorrentManager: ObservableObject {
         }
     }
 
+    public func forceRecheck(_ infoHash: String) {
+        wrapper.forceRecheck(infoHash)
+        if var item = torrents[infoHash] {
+            item.state = .checkingFiles
+            torrents[infoHash] = item
+        }
+    }
+
     public func setPriority(_ priority: TorrentPriority, for infoHash: String) {
         guard var item = torrents[infoHash] else { return }
         item.priority = priority.rawValue

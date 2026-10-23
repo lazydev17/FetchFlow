@@ -158,6 +158,16 @@ struct InspectorGeneralTab: View {
                     }
                     .buttonStyle(.plain)
                     .help("Reveal in Finder")
+
+                    Button {
+                        torrentManager.forceRecheck(torrent.infoHash)
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Force Recheck Local Data")
                 }
 
                 // Transfer & Date Stats

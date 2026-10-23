@@ -24,12 +24,14 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <dirent.h>
 #include <fstream>
 #include <iterator>
 #include <map>
 #include <mutex>
 #include <sstream>
 #include <string>
+#include <sys/stat.h>
 #include <thread>
 #include <unordered_set>
 #include <vector>
@@ -270,12 +272,65 @@ static bool write_file_atomic(std::string const& path, std::vector<char> const& 
     return true;
 }
 
+static bool disk_has_torrent_content(std::string const& savePath, std::string const& name) {
+    if (savePath.empty() || name.empty()) return false;
+    std::string fullPath = savePath + "/" + name;
+    struct stat st;
+    if (stat(fullPath.c_str(), &st) != 0) return false;
+    if (S_ISDIR(st.st_mode)) {
+        DIR *dir = opendir(fullPath.c_str());
+        if (!dir) return false;
+        struct dirent *entry;
+        bool hasContent = false;
+        while ((entry = readdir(dir)) != nullptr) {
+            if (strcmp(entry->d_name, ".") != 0 &&
+                strcmp(entry->d_name, "..") != 0 &&
+                strcmp(entry->d_name, ".DS_Store") != 0) {
+                std::string childPath = fullPath + "/" + entry->d_name;
+                struct stat childSt;
+                if (stat(childPath.c_str(), &childSt) == 0) {
+                    if (S_ISDIR(childSt.st_mode) || childSt.st_size > 0) {
+                        hasContent = true;
+                        break;
+                    }
+                }
+            }
+        }
+        closedir(dir);
+        return hasContent;
+    } else if (S_ISREG(st.st_mode)) {
+        return st.st_size > 0;
+    }
+    return false;
+}
+
 static void write_resume_data_to_directory(std::string const& directory,
                                            lt::add_torrent_params const& params) {
     std::string hash = info_hash_to_hex(params.info_hashes);
     if (hash.empty()) return;
     try {
-        std::vector<char> buffer = lt::write_resume_data_buf(params);
+        lt::add_torrent_params paramsToWrite = params;
+
+        // Safeguard against piece loss:
+        // If incoming params has 0 pieces, but an existing on-disk resume file already has verified pieces,
+        // do not let a premature snapshot erase the verified piece data!
+        if (paramsToWrite.have_pieces.empty() || paramsToWrite.have_pieces.count() == 0) {
+            std::string existingPath = resume_path(directory, hash);
+            std::vector<char> existingBuffer = read_file(existingPath);
+            if (!existingBuffer.empty()) {
+                lt::error_code ec;
+                lt::add_torrent_params existing = lt::read_resume_data(
+                    lt::span<char const>(existingBuffer.data(), existingBuffer.size()), ec);
+                if (!ec && existing.have_pieces.count() > 0) {
+                    paramsToWrite.have_pieces = existing.have_pieces;
+                    if (paramsToWrite.total_downloaded <= 0) {
+                        paramsToWrite.total_downloaded = existing.total_downloaded;
+                    }
+                }
+            }
+        }
+
+        std::vector<char> buffer = lt::write_resume_data_buf(paramsToWrite);
         if (buffer.empty()) return;
         write_file_atomic(resume_path(directory, hash), buffer);
     } catch (std::exception const& e) {
@@ -567,13 +622,20 @@ static NSArray<NSDictionary<NSString *, id> *> *extract_files(lt::torrent_handle
                                 });
                             }
 
-                            // Persist an initial resume record as soon as we have
-                            // metadata. This also makes an unexpected exit much
-                            // cheaper to recover from.
-                            try {
-                                added->handle.save_resume_data(lt::torrent_handle::save_info_dict);
-                            } catch (std::exception const& e) {
-                                NSLog(@"save_resume_data(add) failed: %s", e.what());
+                            // Auto-recovery: If local files already exist on disk, but fast-resume has 0 pieces
+                            // (e.g. from a premature save or corrupted resume file), automatically force a recheck
+                            // so libtorrent scans the existing data and recovers all downloaded pieces!
+                            lt::torrent_status status = added->handle.status(lt::torrent_handle::query_pieces);
+                            if (status.num_pieces > 0 && status.pieces.count() == 0) {
+                                std::string savePath = added->handle.status().save_path;
+                                if (disk_has_torrent_content(savePath, name)) {
+                                    NSLog(@"Auto-recovering existing files on disk for %s: triggering force_recheck", name.c_str());
+                                    try {
+                                        added->handle.force_recheck();
+                                    } catch (std::exception const& e) {
+                                        NSLog(@"Auto-recovery force_recheck failed: %s", e.what());
+                                    }
+                                }
                             }
                         }
                     }
@@ -609,13 +671,28 @@ static NSArray<NSDictionary<NSString *, id> *> *extract_files(lt::torrent_handle
                             });
                         }
 
-                        // Persist the info-dict as soon as metadata arrives, so
-                        // the next launch can add the torrent from resume data
-                        // alone (and keeps file priorities/trackers).
+                        // Auto-recovery: If local files already exist on disk, but fast-resume has 0 pieces
+                        // on metadata arrival, force a recheck to scan existing files.
+                        lt::torrent_status status = metadata->handle.status(lt::torrent_handle::query_pieces);
+                        if (status.num_pieces > 0 && status.pieces.count() == 0) {
+                            std::string savePath = metadata->handle.status().save_path;
+                            if (disk_has_torrent_content(savePath, name)) {
+                                NSLog(@"Auto-recovering existing files on disk for %s on metadata: triggering force_recheck", name.c_str());
+                                try {
+                                    metadata->handle.force_recheck();
+                                } catch (std::exception const& e) {
+                                    NSLog(@"metadata auto-recovery force_recheck failed: %s", e.what());
+                                }
+                            }
+                        }
+                    }
+                    else if (auto checked = lt::alert_cast<lt::torrent_checked_alert>(alert)) {
+                        // When checking completes, m_files_checked is guaranteed true and the exact piece bitfield
+                        // is known. Persist the verified resume record with full info-dict now.
                         try {
-                            metadata->handle.save_resume_data(lt::torrent_handle::save_info_dict);
+                            checked->handle.save_resume_data(lt::torrent_handle::save_info_dict);
                         } catch (std::exception const& e) {
-                            NSLog(@"save_resume_data(metadata) failed: %s", e.what());
+                            NSLog(@"save_resume_data(checked) failed: %s", e.what());
                         }
                     }
                     else if (auto finished = lt::alert_cast<lt::torrent_finished_alert>(alert)) {
@@ -1246,10 +1323,33 @@ static NSArray<NSDictionary<NSString *, id> *> *extract_files(lt::torrent_handle
     }
     if (!handle.is_valid()) return;
 
+    // Do not request resume data while checking files to avoid capturing incomplete pieces
+    if (handle.status().state == lt::torrent_status::checking_files ||
+        handle.status().state == lt::torrent_status::checking_resume_data) {
+        return;
+    }
+
     try {
         handle.save_resume_data(lt::torrent_handle::save_info_dict);
     } catch (std::exception const& e) {
         NSLog(@"save_resume_data(request) failed: %s", e.what());
+    }
+}
+
+- (void)forceRecheck:(NSString *)infoHash {
+    lt::torrent_handle handle;
+    {
+        std::lock_guard<std::mutex> lock(_handleMutex);
+        auto found = _handles.find(utf8(infoHash));
+        if (found == _handles.end()) return;
+        handle = found->second;
+    }
+    if (!handle.is_valid()) return;
+
+    try {
+        handle.force_recheck();
+    } catch (std::exception const& e) {
+        NSLog(@"force_recheck failed: %s", e.what());
     }
 }
 
