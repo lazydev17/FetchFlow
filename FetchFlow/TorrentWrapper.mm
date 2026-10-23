@@ -24,14 +24,12 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
-#include <dirent.h>
 #include <fstream>
 #include <iterator>
 #include <map>
 #include <mutex>
 #include <sstream>
 #include <string>
-#include <sys/stat.h>
 #include <thread>
 #include <unordered_set>
 #include <vector>
@@ -274,34 +272,35 @@ static bool write_file_atomic(std::string const& path, std::vector<char> const& 
 
 static bool disk_has_torrent_content(std::string const& savePath, std::string const& name) {
     if (savePath.empty() || name.empty()) return false;
-    std::string fullPath = savePath + "/" + name;
-    struct stat st;
-    if (stat(fullPath.c_str(), &st) != 0) return false;
-    if (S_ISDIR(st.st_mode)) {
-        DIR *dir = opendir(fullPath.c_str());
-        if (!dir) return false;
-        struct dirent *entry;
-        bool hasContent = false;
-        while ((entry = readdir(dir)) != nullptr) {
-            if (strcmp(entry->d_name, ".") != 0 &&
-                strcmp(entry->d_name, "..") != 0 &&
-                strcmp(entry->d_name, ".DS_Store") != 0) {
-                std::string childPath = fullPath + "/" + entry->d_name;
-                struct stat childSt;
-                if (stat(childPath.c_str(), &childSt) == 0) {
-                    if (S_ISDIR(childSt.st_mode) || childSt.st_size > 0) {
-                        hasContent = true;
-                        break;
-                    }
-                }
+    NSString *nsSavePath = nsstring(savePath);
+    NSString *nsName = nsstring(name);
+    NSString *fullPath = [nsSavePath stringByAppendingPathComponent:nsName];
+
+    NSFileManager *fm = [NSFileManager defaultManager];
+    BOOL isDir = NO;
+    if (![fm fileExistsAtPath:fullPath isDirectory:&isDir]) {
+        return false;
+    }
+
+    if (isDir) {
+        NSArray<NSString *> *contents = [fm contentsOfDirectoryAtPath:fullPath error:nil];
+        if (contents == nil || contents.count == 0) return false;
+        for (NSString *item in contents) {
+            if ([item isEqualToString:@".DS_Store"]) continue;
+            NSString *subPath = [fullPath stringByAppendingPathComponent:item];
+            NSDictionary<NSFileAttributeKey, id> *attrs = [fm attributesOfItemAtPath:subPath error:nil];
+            if (attrs) {
+                if ([attrs[NSFileType] isEqual:NSFileTypeDirectory]) return true;
+                NSNumber *size = attrs[NSFileSize];
+                if (size && size.longLongValue > 0) return true;
             }
         }
-        closedir(dir);
-        return hasContent;
-    } else if (S_ISREG(st.st_mode)) {
-        return st.st_size > 0;
+        return false;
+    } else {
+        NSDictionary<NSFileAttributeKey, id> *attrs = [fm attributesOfItemAtPath:fullPath error:nil];
+        NSNumber *size = attrs[NSFileSize];
+        return size && size.longLongValue > 0;
     }
-    return false;
 }
 
 static void write_resume_data_to_directory(std::string const& directory,
