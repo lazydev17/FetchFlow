@@ -24,7 +24,9 @@ enum EngineSettings {
 
     static let networkInterfaceModeKey = "networkInterfaceMode"
     static let killSwitchEnabledKey = "killSwitchEnabled"
+    static let connectionProfileKey = "connectionProfile"
     static let maxGlobalConnectionsKey = "maxGlobalConnections"
+    static let maxConnectionsPerTorrentKey = "maxConnectionsPerTorrent"
     static let mixedModePreferTCPKey = "mixedModePreferTCP"
 
     static let customSavePathBookmarkKey = "securityScope.customSavePath"
@@ -63,6 +65,15 @@ enum EngineSettings {
         return min(max(value, 20), 2000)
     }
 
+    static var maxConnectionsPerTorrent: Int {
+        let value = defaults.object(forKey: maxConnectionsPerTorrentKey) as? Int ?? 50
+        return min(max(value, 5), 500)
+    }
+
+    static var connectionProfile: String {
+        defaults.string(forKey: connectionProfileKey) ?? "Balanced"
+    }
+
     static var mixedModePreferTCP: Bool {
         defaults.object(forKey: mixedModePreferTCPKey) as? Bool ?? true
     }
@@ -83,7 +94,9 @@ enum EngineSettings {
             "autoStartDownloads": autoStartDownloads,
             "networkInterfaceMode": networkInterfaceMode,
             "killSwitchEnabled": killSwitchEnabled,
+            "connectionProfile": connectionProfile,
             "maxGlobalConnections": maxGlobalConnections,
+            "maxConnectionsPerTorrent": maxConnectionsPerTorrent,
             "mixedModePreferTCP": mixedModePreferTCP,
             "boundInterface": "",
             "killSwitchActive": false

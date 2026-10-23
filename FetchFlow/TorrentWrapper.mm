@@ -389,6 +389,7 @@ static NSArray<NSDictionary<NSString *, id> *> *extract_files(lt::torrent_handle
     std::atomic<bool> _running;
     std::atomic<bool> _stopped;
     std::atomic<bool> _autoStartNewTorrents;
+    std::atomic<int> _maxConnectionsPerTorrent;
 
     TorrentProgressBlock _progressCb;
     TorrentErrorBlock _errorCb;
@@ -418,6 +419,7 @@ static NSArray<NSDictionary<NSString *, id> *> *extract_files(lt::torrent_handle
     _stopped = false;
     _autoStartNewTorrents = true;
     _currentKillSwitchActive = false;
+    _maxConnectionsPerTorrent = 50;
 
     [self setupSupportDirectories];
 
@@ -929,6 +931,9 @@ static NSArray<NSDictionary<NSString *, id> *> *extract_files(lt::torrent_handle
     int maxConnections = std::clamp(int_setting(settings, @"maxGlobalConnections", 200), 20, 2000);
     pack.set_int(lt::settings_pack::connections_limit, maxConnections);
 
+    int maxPerTorrent = std::clamp(int_setting(settings, @"maxConnectionsPerTorrent", 50), 5, 500);
+    _maxConnectionsPerTorrent = maxPerTorrent;
+
     bool preferTCP = bool_setting(settings, @"mixedModePreferTCP", true);
     pack.set_int(lt::settings_pack::mixed_mode_algorithm,
                  preferTCP ? static_cast<int>(lt::settings_pack::prefer_tcp)
@@ -946,6 +951,16 @@ static NSArray<NSDictionary<NSString *, id> *> *extract_files(lt::torrent_handle
 
     if (_session) {
         _session->apply_settings(std::move(pack));
+        {
+            std::lock_guard<std::mutex> lock(_handleMutex);
+            for (auto& pair : _handles) {
+                if (pair.second.is_valid()) {
+                    try {
+                        pair.second.set_max_connections(maxPerTorrent);
+                    } catch (...) {}
+                }
+            }
+        }
         if (interfaceChanged) {
             try {
                 _session->reopen_network_sockets();
@@ -1029,6 +1044,7 @@ static NSArray<NSDictionary<NSString *, id> *> *extract_files(lt::torrent_handle
     try {
         lt::add_torrent_params params = lt::parse_magnet_uri(utf8(magnet));
         params.save_path = utf8(path);
+        params.max_connections = _maxConnectionsPerTorrent.load();
 
         std::string hash = info_hash_to_hex(params.info_hashes);
         if (hash.empty()) {
@@ -1078,6 +1094,7 @@ static NSArray<NSDictionary<NSString *, id> *> *extract_files(lt::torrent_handle
         params.ti = std::make_shared<lt::torrent_info>(utf8(filePath));
         params.save_path = utf8(path);
         params.info_hashes = params.ti->info_hashes();
+        params.max_connections = _maxConnectionsPerTorrent.load();
 
         std::string hash = info_hash_to_hex(params.info_hashes);
         if (hash.empty()) {

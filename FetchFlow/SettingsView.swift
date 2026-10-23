@@ -630,10 +630,35 @@ struct NetworkSettingsPane: View {
 
     @AppStorage("networkInterfaceMode") private var networkInterfaceMode = "auto_vpn"
     @AppStorage("killSwitchEnabled") private var killSwitchEnabled = false
+    @AppStorage("connectionProfile") private var connectionProfile = "balanced"
     @AppStorage("maxGlobalConnections") private var maxGlobalConnections = 200
+    @AppStorage("maxConnectionsPerTorrent") private var maxConnectionsPerTorrent = 50
     @AppStorage("mixedModePreferTCP") private var mixedModePreferTCP = true
 
     @ObservedObject private var networkService = NetworkInterfaceService.shared
+
+    private struct ConnectionProfilePreset: Identifiable {
+        let id: String
+        let label: String
+        let icon: String
+        let globalLimit: Int
+        let perTorrentLimit: Int
+    }
+
+    private let connectionPresets: [ConnectionProfilePreset] = [
+        ConnectionProfilePreset(id: "hotspot", label: "Hotspot", icon: "antenna.radiowaves.left.and.right", globalLimit: 80, perTorrentLimit: 25),
+        ConnectionProfilePreset(id: "balanced", label: "Balanced", icon: "scalemass.fill", globalLimit: 200, perTorrentLimit: 50),
+        ConnectionProfilePreset(id: "fiber", label: "Fiber / Mesh", icon: "bolt.horizontal.fill", globalLimit: 500, perTorrentLimit: 120),
+        ConnectionProfilePreset(id: "custom", label: "Custom", icon: "slider.horizontal.3", globalLimit: 200, perTorrentLimit: 50)
+    ]
+
+    private func applyProfilePreset(_ preset: ConnectionProfilePreset) {
+        connectionProfile = preset.id
+        if preset.id != "custom" {
+            maxGlobalConnections = preset.globalLimit
+            maxConnectionsPerTorrent = preset.perTorrentLimit
+        }
+    }
 
     var body: some View {
         Form {
@@ -689,31 +714,98 @@ struct NetworkSettingsPane: View {
             }
 
             Section {
-                HStack {
-                    Text("Max Connections")
-                    Spacer()
-                    Text("\(maxGlobalConnections)")
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Connection Profile")
+                        .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(.secondary)
-                        .monospacedDigit()
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            ForEach(connectionPresets) { preset in
+                                let isSelected = connectionProfile == preset.id
+                                Button {
+                                    applyProfilePreset(preset)
+                                } label: {
+                                    HStack(spacing: 5) {
+                                        Image(systemName: preset.icon)
+                                            .font(.system(size: 10.5))
+                                        Text(preset.label)
+                                            .font(.system(size: 11.5, weight: isSelected ? .semibold : .regular))
+                                    }
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 4)
+                                    .background(
+                                        Capsule()
+                                            .fill(isSelected ? Color.accentColor : Color(nsColor: .quaternaryLabelColor).opacity(0.6))
+                                    )
+                                    .overlay(
+                                        Capsule()
+                                            .strokeBorder(isSelected ? Color.clear : Color(nsColor: .separatorColor).opacity(0.3), lineWidth: 0.8)
+                                    )
+                                    .foregroundStyle(isSelected ? Color.white : Color.primary)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
                 }
-                Slider(value: Binding(
-                    get: { Double(maxGlobalConnections) },
-                    set: { maxGlobalConnections = Int($0) }
-                ), in: 30...600, step: 10)
+
+                // Global limit slider
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("Global Connection Limit")
+                        Spacer()
+                        Text("\(maxGlobalConnections)")
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+                    Slider(value: Binding(
+                        get: { Double(maxGlobalConnections) },
+                        set: {
+                            maxGlobalConnections = Int($0)
+                            connectionProfile = "custom"
+                        }
+                    ), in: 30...1000, step: 10)
+                }
+
+                // Per-torrent limit slider
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("Per-Torrent Connection Limit")
+                        Spacer()
+                        Text("\(maxConnectionsPerTorrent)")
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+                    Slider(value: Binding(
+                        get: { Double(maxConnectionsPerTorrent) },
+                        set: {
+                            maxConnectionsPerTorrent = Int($0)
+                            connectionProfile = "custom"
+                        }
+                    ), in: 10...300, step: 5)
+                }
 
                 Toggle(isOn: $mixedModePreferTCP) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Prioritize Web Browsing")
-                        Text("Ensures background torrent packets yield bandwidth when you load websites.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                    HStack(spacing: 8) {
+                        Image(systemName: "globe.americas.fill")
+                            .foregroundStyle(Color.accentColor)
+                            .font(.system(size: 14))
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Web & Streaming Protection (uTP LEDBAT)")
+                            Text("Ensures background torrent traffic automatically yields bandwidth when websites, video calls, or DNS queries load.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
                 .toggleStyle(.switch)
             } header: {
-                Text("Connection Stability & Quality of Service")
+                Text("Connections & Router Stability")
             } footer: {
-                Text("Limits concurrent connections to prevent home routers from freezing or dropping DNS requests.")
+                Text("Controls concurrent connections to prevent home router NAT table exhaustion and Wi-Fi bufferbloat. Real-time active swarm stats can be monitored in the Inspector Connections tab.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

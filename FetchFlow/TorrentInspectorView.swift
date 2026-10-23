@@ -457,21 +457,40 @@ struct InspectorFilesTab: View {
 
 struct InspectorConnectionsTab: View {
     let torrent: TorrentModel
+    @ObservedObject private var networkService = NetworkInterfaceService.shared
+
+    private var totalConnections: Int {
+        torrent.numSeeds + torrent.numPeers
+    }
+
+    private var perTorrentLimit: Int {
+        EngineSettings.maxConnectionsPerTorrent
+    }
+
+    private var capacityRatio: Double {
+        guard perTorrentLimit > 0 else { return 0.0 }
+        return min(max(Double(totalConnections) / Double(perTorrentLimit), 0.0), 1.0)
+    }
 
     var body: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 12) {
             // Seeds card
             VStack(alignment: .leading, spacing: 6) {
-                Text("SEEDS")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(.secondary)
-                    .tracking(0.5)
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.green)
+                    Text("SEEDS")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.secondary)
+                        .tracking(0.5)
+                }
 
                 Text("\(torrent.numSeeds)")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
                     .foregroundStyle(Color.green)
 
-                Text("Active connected seeds")
+                Text("Active uploaders")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
 
@@ -483,16 +502,21 @@ struct InspectorConnectionsTab: View {
 
             // Peers card
             VStack(alignment: .leading, spacing: 6) {
-                Text("PEERS")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(.secondary)
-                    .tracking(0.5)
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.down.circle.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.accentColor)
+                    Text("PEERS")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.secondary)
+                        .tracking(0.5)
+                }
 
                 Text("\(torrent.numPeers)")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
                     .foregroundStyle(Color.accentColor)
 
-                Text("Active connected peers")
+                Text("Active downloaders")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
 
@@ -502,30 +526,81 @@ struct InspectorConnectionsTab: View {
             .frame(maxWidth: .infinity, alignment: .topLeading)
             .background(Color(nsColor: .controlBackgroundColor).opacity(0.4), in: RoundedRectangle(cornerRadius: 8))
 
-            // Swarm Health & Status card
+            // Swarm Capacity & Limit card
             VStack(alignment: .leading, spacing: 6) {
-                Text("SWARM HEALTH")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(.secondary)
-                    .tracking(0.5)
-
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(torrent.numSeeds > 0 || torrent.numPeers > 0 ? Color.green : Color.orange)
-                        .frame(width: 8, height: 8)
-
-                    Text(torrent.numSeeds > 0 || torrent.numPeers > 0 ? "Healthy" : "Searching")
-                        .font(.system(size: 13, weight: .semibold))
+                HStack(spacing: 4) {
+                    Image(systemName: "gauge.with.dots.needle.50percent")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                    Text("SWARM CAPACITY")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.secondary)
+                        .tracking(0.5)
                 }
 
-                if let err = torrent.error {
-                    Text(err)
-                        .font(.system(size: 10.5))
-                        .foregroundStyle(.red)
-                        .lineLimit(2)
+                HStack(alignment: .firstTextBaseline, spacing: 3) {
+                    Text("\(totalConnections)")
+                        .font(.system(size: 26, weight: .bold, design: .rounded))
+                    Text("/ \(perTorrentLimit)")
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+
+                ProgressView(value: capacityRatio)
+                    .tint(capacityRatio >= 0.9 ? .orange : Color.accentColor)
+                    .controlSize(.small)
+
+                Text("Global Cap: \(EngineSettings.maxGlobalConnections)")
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(.secondary)
+
+                Spacer(minLength: 0)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .background(Color(nsColor: .controlBackgroundColor).opacity(0.4), in: RoundedRectangle(cornerRadius: 8))
+
+            // Routing & Health card
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(torrent.numSeeds > 0 || torrent.numPeers > 0 ? Color.green : Color.orange)
+                        .frame(width: 7, height: 7)
+                    Text("ROUTING & HEALTH")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.secondary)
+                        .tracking(0.5)
+                }
+
+                HStack(spacing: 6) {
+                    if networkService.isConnectedToVPN {
+                        Image(systemName: "lock.shield.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.green)
+                        Text(networkService.activeVPN?.displayName ?? "VPN Active")
+                            .font(.system(size: 12, weight: .semibold))
+                            .lineLimit(1)
+                    } else {
+                        Image(systemName: "network")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                        Text("Direct Route")
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                }
+
+                if EngineSettings.mixedModePreferTCP {
+                    HStack(spacing: 4) {
+                        Image(systemName: "globe.americas.fill")
+                            .font(.system(size: 9))
+                            .foregroundStyle(Color.accentColor)
+                        Text("Web Priority Active")
+                            .font(.system(size: 10.5))
+                            .foregroundStyle(.secondary)
+                    }
                 } else {
-                    Text("Connected to BitTorrent DHT & trackers")
-                        .font(.system(size: 11))
+                    Text("Mixed Traffic Mode")
+                        .font(.system(size: 10.5))
                         .foregroundStyle(.secondary)
                 }
 
