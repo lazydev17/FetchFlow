@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>FetchFlow</string>
+	<key>SUFeedURL</key>
+	<string>https://github.com/lazydev17/FetchFlow/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>i1tiylZKTzkeCnQfdTE2MHVUIOz9MQF++zGNcxclcXU=</string>
+	<key>SUEnableInstallerLauncherService</key>
+	<true/>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUAllowsAutomaticUpdates</key>
+	<true/>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>FetchFlow uses the local network to discover nearby peers and to configure port forwarding for faster downloads.</string>
+</dict>
+</plist>

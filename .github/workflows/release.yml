@@ -1,0 +1,162 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v1.0.2)'
+        required: true
+        default: 'v1.0.2'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build & Publish Release
+    runs-on: macos-26
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine Version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            RAW_TAG="${{ github.event.inputs.tag }}"
+          else
+            RAW_TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          VERSION="${RAW_TAG#v}"
+          VERSION="${VERSION#v}"
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          PATCH="${PATCH%%-*}"
+          BUILD_NUMBER=$((10#${MAJOR:-0} * 10000 + 10#${MINOR:-0} * 100 + 10#${PATCH:-0}))
+
+          echo "tag=$RAW_TAG" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "build=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+          echo "Target tag: $RAW_TAG, version: $VERSION, build: $BUILD_NUMBER"
+
+      - name: Build Release App
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "Building Release version $VERSION..."
+          xcodebuild clean build \
+            -project FetchFlow.xcodeproj \
+            -scheme FetchFlow \
+            -configuration Release \
+            -derivedDataPath build/DerivedData \
+            MARKETING_VERSION="$VERSION" \
+            CURRENT_PROJECT_VERSION="${{ steps.version.outputs.build }}" \
+            ARCHS="arm64" \
+            ONLY_ACTIVE_ARCH=YES \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGN_STYLE="Manual"
+
+      - name: Pre-Flight Bundle Verification
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          APP_PATH="build/DerivedData/Build/Products/Release/FetchFlow.app"
+          chmod +x ./scripts/verify-bundle.sh
+          ./scripts/verify-bundle.sh "$APP_PATH" "$VERSION"
+
+      - name: Package Distribution DMG
+        run: |
+          APP_PATH="build/DerivedData/Build/Products/Release/FetchFlow.app"
+          echo "Building DMG installer..."
+          chmod +x ./scripts/make-dmg.sh
+          ./scripts/make-dmg.sh "$APP_PATH"
+
+      - name: Package Distribution Zip
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          mkdir -p releases
+          APP_PATH="build/DerivedData/Build/Products/Release/FetchFlow.app"
+          ZIP_NAME="FetchFlow-$VERSION.zip"
+          echo "Archiving $APP_PATH into releases/$ZIP_NAME..."
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "releases/$ZIP_NAME"
+          (cd releases && shasum -a 256 "$ZIP_NAME" > "${ZIP_NAME}.sha256")
+          echo "Archive size: $(du -sh "releases/$ZIP_NAME" | awk '{print $1}')"
+
+      - name: Generate Sparkle Appcast
+        env:
+          SPARKLE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TAG="${{ steps.version.outputs.tag }}"
+          DOWNLOAD_PREFIX="https://github.com/${{ github.repository }}/releases/download/$TAG/"
+          
+          # Isolate only the newly built archive and the existing feed for
+          # Sparkle generate_appcast. Old zips are not in the checkout
+          # (releases/ is gitignored), so this also avoids indexing stale
+          # archives with the current tag's download URL.
+          STAGE_DIR="$(mktemp -d)"
+          cp "releases/FetchFlow-${VERSION}.zip" "$STAGE_DIR/"
+
+          # Fetch existing feed from latest release if available, or fall back to repository appcast.xml
+          if curl -fsSL "https://github.com/${{ github.repository }}/releases/latest/download/appcast.xml" -o "$STAGE_DIR/appcast.xml" 2>/dev/null; then
+            echo "Using appcast.xml from latest GitHub release."
+          elif [ -f appcast.xml ]; then
+            cp appcast.xml "$STAGE_DIR/appcast.xml"
+          fi
+
+          if [ -z "$SPARKLE_KEY" ]; then
+            echo "::error::SPARKLE_PRIVATE_KEY is not configured; refusing to publish an unsigned appcast."
+            exit 1
+          fi
+
+          chmod +x ./scripts/bin/generate_appcast
+          echo "Signing appcast with SPARKLE_PRIVATE_KEY secret..."
+          printf '%s' "$SPARKLE_KEY" | ./scripts/bin/generate_appcast \
+            --download-url-prefix "$DOWNLOAD_PREFIX" \
+            --ed-key-file - \
+            --maximum-versions 0 \
+            --maximum-deltas 0 \
+            "$STAGE_DIR"
+          
+          if [ -f "$STAGE_DIR/appcast.xml" ]; then
+            cp "$STAGE_DIR/appcast.xml" releases/appcast.xml
+          fi
+          rm -rf "$STAGE_DIR"
+
+      - name: Create GitHub Release & Upload Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: FetchFlow ${{ steps.version.outputs.tag }}
+          files: |
+            releases/FetchFlow-${{ steps.version.outputs.version }}.dmg
+            releases/FetchFlow-${{ steps.version.outputs.version }}.dmg.sha256
+            releases/FetchFlow-${{ steps.version.outputs.version }}.zip
+            releases/FetchFlow-${{ steps.version.outputs.version }}.zip.sha256
+            releases/appcast.xml
+          generate_release_notes: false
+          body: |
+            ## FetchFlow ${{ steps.version.outputs.tag }}
+
+            Download the DMG, open it, and drag **FetchFlow** into your Applications folder.
+            The ZIP is the archive used by Sparkle's in-app updater.
+
+            ### Verify your download
+            Attach the provided `.sha256` files to verify integrity:
+            ```bash
+            shasum -a 256 -c FetchFlow-${{ steps.version.outputs.version }}.dmg.sha256
+            shasum -a 256 -c FetchFlow-${{ steps.version.outputs.version }}.zip.sha256
+            ```
+
+            ### First launch on macOS
+            This open-source build is **not notarized by Apple**, so macOS Gatekeeper may block the
+            first launch. If that happens, open **System Settings → Privacy & Security**, find the
+            FetchFlow notice, and choose **Open Anyway**, then confirm. This is only required once.
+
+            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)
+            for the full list of changes.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

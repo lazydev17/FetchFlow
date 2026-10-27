@@ -1,0 +1,27 @@
+name: Build
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build & Verify
+    runs-on: macos-26
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          xcodebuild clean build \
+            -project FetchFlow.xcodeproj \
+            -scheme FetchFlow \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            ARCHS="arm64" \
+            ONLY_ACTIVE_ARCH=YES \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGN_STYLE="Manual"

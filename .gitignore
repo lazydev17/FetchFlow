@@ -1,0 +1,50 @@
+# Xcode
+## User settings
+xcuserdata/
+*.xcuserdatad/
+*.xcuserstate
+project.xcworkspace/xcuserdata/
+project.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
+
+## Build results
+build/
+DerivedData/
+*.hmap
+*.xccheckout
+*.moved-aside
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+## Swift Package Manager
+.build/
+Packages/
+
+# macOS System Files
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+
+# Large Build Caches & Intermediates
+libtorrent-build/
+
+# Backups & Temporary Files
+*~
+*.orig
+*.bak
+
+# Sparkle Signing Keys & Secrets
+.sparkle/
+*.key
+
+# Local Release Archives
+releases/
+
+# AI Agent skills & workspace configs
+.agents/
+
+
